@@ -1,0 +1,23 @@
+# Secrets — must never be committed
+*.gpg
+.authinfo
+.authinfo.gpg
+*-secrets.el
+auth-source-cache*
+.netrc
+
+# Nix
+result
+result-*
+
+# macOS
+.DS_Store
+
+# Emacs runtime / generated
+emacs/eln-cache/
+emacs/elpaca/
+emacs/auto-save-list/
+emacs/*.elc
+emacs/transient/
+emacs/var/
+custom.el
