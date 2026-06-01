@@ -10,6 +10,7 @@
     ripgrep
     fd
     emacs-macport
+    metals          # Scala LSP server (Metals)
   ];
 
   # Symlink the plain-Elisp config into place. Nix never generates this;
