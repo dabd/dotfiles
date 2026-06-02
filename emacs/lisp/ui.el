@@ -1,7 +1,13 @@
 ;;; ui.el --- appearance -*- lexical-binding: t; -*-
 
-;; modus-vivendi is built into Emacs 30; no package needed.
-(load-theme 'modus-vivendi t)
+;; doom-themes: colorful, high-contrast syntax highlighting (doom-one is the
+;; classic). modus-vivendi (built in) is deliberately low-saturation, so we use
+;; doom-one for richer coloring. :ensure-system-package not needed; elpaca fetches.
+(use-package doom-themes
+  :config
+  (setq doom-themes-enable-bold t
+        doom-themes-enable-italic t)
+  (load-theme 'doom-one t))
 
 ;; which-key is built in on Emacs 30; enable it.
 (use-package which-key
