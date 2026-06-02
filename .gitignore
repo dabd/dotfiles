@@ -24,3 +24,8 @@ emacs/*.elc
 emacs/transient/
 emacs/var/
 custom.el
+
+# Machine-local Emacs config (never commit — enterprise hosts, etc.)
+# Primary location is ~/.config/emacs-local/ (outside this repo). This pattern
+# is a belt-and-suspenders guard in case a local.el is ever placed in the tree.
+emacs/lisp/local.el
