@@ -255,5 +255,14 @@ home-manager.
 - Is the other target laptop the same Nix-friendly corporate fleet? If not, Nix
   may be blocked there and a plain `git clone` of `emacs/` remains the
   lowest-common-denominator fallback (the layered architecture supports this).
-- Primary language for the Phase 3 LSP server (drives which server enters
-  home.nix first).
+
+## Resolved during implementation (see plan's As-Built Deviations)
+
+- Primary language for the Phase 3 LSP server → **Scala (Metals)**.
+- Enterprise hostnames in the public repo → **No**, moved to machine-local
+  `~/.config/emacs-local/local.el`.
+- LLM auth → no Anthropic API key; **gptel on AWS Bedrock** (work, via AWS
+  profile) selected per-machine in `~/.config/emacs-local/llm-local.el`; minuet
+  deferred; the 1Password `op-read` shim was dropped.
+- The repo is intended to be **published publicly**; enterprise hostnames and
+  work/personal emails were scrubbed from the docs and git history pre-publish.
