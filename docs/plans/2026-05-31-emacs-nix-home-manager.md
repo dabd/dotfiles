@@ -1075,3 +1075,79 @@ Expected: backup gone. (PHASE 7 complete.)
 **Consistency:** Module loader list in `init.el` (`ui completion editing project lsp git llm`) matches the seven files created in Tasks 5–11. The 1Password shim `dabd/op-read` defined in Task 11 is the single secret-retrieval path referenced by both gptel and minuet; Forge token retrieval (Task 11 Step 6) reuses the same auth-source approach.
 
 **Deferred (out of v1, per spec):** aidermacs/agentic, treemacs, org, `programs.git`/`tmux`/`zsh` under home-manager, 1Password SSH agent, per-language LSP beyond primary.
+
+---
+
+## Implementation Notes — As-Built Deviations
+
+The plan above is preserved as originally written. During execution, several
+steps required correction or adaptation. These are the as-built facts; prefer
+them over the verbatim code blocks above where they conflict.
+
+1. **Emacs version (Task 3).** emacs-macport resolved to **30.2.50** (a 30.x
+   stable macport patch level), fetched from the binary cache — no long compile.
+   "30.2" in the plan means "current 30.x stable macport."
+
+2. **elpaca installer (Task 4).** The plan's bootstrap block was pinned to
+   installer 0.10 and was a truncated copy (unbalanced `let*`). `:ref nil`
+   clones elpaca *master*, now **0.12**, which renamed `repos/` → `sources/` and
+   `:build (:not elpaca--activate-package)` → `:build (:not elpaca-activate)`.
+   init.el uses the canonical **0.12** installer (verbatim from elpaca's own
+   `doc/installer.el`).
+
+3. **compat dependency (Task 6).** vertico/consult/corfu/etc. require
+   `compat >= 31`, but Emacs 30 ships built-in compat 30.x; elpaca trusts the
+   stale built-in and the packages fail to build. Fix: `(use-package compat)`
+   added as the first form in `completion.el` to install compat 31 first.
+
+4. **elpaca installs need an event loop (Tasks 6+).** elpaca does not install
+   reliably under `emacs --batch` (its async queue needs a running event loop).
+   Package installs were driven via `emacs --daemon`, then verified in batch.
+
+5. **`project.el` → `projects.el` (Task 8).** A module file named `project.el`
+   that also configures the built-in `project` feature causes a recursive
+   `require` at startup. Renamed module/feature to `projects`; init.el's loader
+   list is `(ui completion editing projects lsp git llm)`.
+
+6. **Primary language = Scala/Metals (Task 9).** Not Python/pyright. `metals` in
+   `home.nix`; `scala-ts-mode` package installed (Scala's major mode is not
+   built in); eglot mapped explicitly with
+   `(add-to-list 'eglot-server-programs '(scala-ts-mode . ("metals")))` because
+   eglot's built-in map keys Metals off `scala-mode`.
+
+7. **transient version shortfall (Task 10).** magit 4.5 needs `transient >= 0.13`
+   but Emacs ships built-in 0.7.2.2. Fix: `(use-package transient)` as the first
+   form in `git.el` (same pattern as the compat fix).
+
+8. **Machine-local files live OUTSIDE the repo (Tasks 10, 11).** The plan's
+   gitignored `emacs/lisp/local.el` cannot work: `~/.config/emacs` is Nix-owned
+   (store symlinks of git-tracked files only), so a gitignored in-tree file never
+   reaches the machine. Enterprise forge hosts live in
+   `~/.config/emacs-local/local.el`; the gptel backend lives in
+   `~/.config/emacs-local/llm-local.el`. Both hand-placed per machine, loaded
+   with NOERROR. See README.
+
+9. **llm.el redesigned (Task 11).** The plan assumed one Anthropic API key in
+   1Password feeding gptel + minuet via a `dabd/op-read` shim. Invalid here:
+   work Anthropic = AWS Bedrock (not an API key), personal = a Max subscription
+   (can't drive the API), no separate API key, no local Ollama. As built:
+   **minuet deferred**; committed `llm.el` is backend-less (gptel only, no key,
+   no op-read shim) and loads `~/.config/emacs-local/llm-local.el`; the work
+   machine selects **AWS Bedrock** there. `curl` added to `home.nix` (gptel's
+   Bedrock path needs curl >= 8.9; macOS ships 8.7). The Phase 4 gate part 2
+   (Forge enterprise PRs) is verified interactively with real tokens rather than
+   a committed step.
+
+10. **Daemon PATH fix (Task 12).** A launchd-started daemon (and a macOS `.app`)
+    inherit only the bare system PATH, so eglot couldn't find `metals` and
+    consult/project couldn't find `rg`. `early-init.el` prepends the Nix profile
+    dirs (`~/.nix-profile/bin`, plus NixOS `/etc/profiles/per-user/$USER/bin` and
+    `/run/current-system/sw/bin`) to `exec-path`/`$PATH` — OS-agnostic, no
+    Homebrew assumption, no `exec-path-from-shell` dependency.
+
+11. **Pre-publish scrub.** Enterprise hostnames and work/personal emails that
+    appeared in this plan and the spec were redacted to placeholders and the git
+    history was rewritten before any push, since the repo is intended to be
+    public. `git` is intentionally left as the system binary (not Nix) to avoid
+    risking enterprise credential helpers / `includeIf` routing — added to the
+    deferred backlog with a "verify enterprise auth first" caveat.
