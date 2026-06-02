@@ -15,7 +15,7 @@
 (global-display-line-numbers-mode 1)
 (column-number-mode 1)
 (when (member "Menlo" (font-family-list))
-  (set-face-attribute 'default nil :family "Menlo" :height 140))
+  (set-face-attribute 'default nil :family "Menlo" :height 100)) ; 10pt
 
 (provide 'ui)
 ;;; ui.el ends here
