@@ -3,7 +3,15 @@
 ;; scala-ts-mode is the tree-sitter major mode for Scala (not built in).
 ;; treesit-auto (see projects module) installs the grammar on first use.
 (use-package scala-ts-mode
-  :mode ("\\.scala\\'" "\\.sbt\\'"))
+  :mode ("\\.scala\\'" "\\.sbt\\'")
+  :hook
+  ;; Tree-sitter font-lock defaults to level 3, which leaves variables,
+  ;; function calls, operators, literals and string interpolation unhighlighted
+  ;; (looks bland). Level 4 enables the full feature set for richer coloring.
+  (scala-ts-mode . (lambda ()
+                     (setq-local treesit-font-lock-level 4)
+                     (treesit-font-lock-recompute-features)
+                     (font-lock-flush))))
 
 (use-package eglot
   :ensure nil
