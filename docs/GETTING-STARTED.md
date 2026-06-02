@@ -13,23 +13,26 @@ services. Confirm these once so you trust the setup.
 
 ### A. Launch it
 
-The editor runs as a launchd-managed daemon. Don't run `emacs` directly — attach:
+Launch the GUI via the macOS app bundle (Launch Services) so the window gets
+proper keyboard focus:
 
 ```bash
-emacsclient -c
+open -a ~/.nix-profile/Applications/Emacs.app
 ```
 
-- If it errors with "can't find socket" (can happen right after a fresh login),
-  run `emacs --daemon` once, or launch the app bundle:
-  `open ~/.nix-profile/Applications/Emacs.app`.
-- You should see the dark modus-vivendi theme, line numbers, and a modeline.
+- You should see the dark modus-vivendi theme, line numbers, and a modeline, and
+  be able to type in the window.
+- Do NOT launch with a bare `emacs &` or via a launchd daemon: on macOS the
+  window appears but doesn't receive keyboard focus (keystrokes leak to the
+  terminal). The `.app` bundle avoids this. See §6.
+- A quick terminal Emacs (no window) is `emacs -nw`.
 
 ### B. Confirm the language server (Scala / Metals)
 
 Open a real Scala project (one with `build.sbt`):
 
 ```bash
-emacsclient -c ~/projects/<some-scala-repo>/.../Foo.scala
+open -a ~/.nix-profile/Applications/Emacs.app ~/projects/<some-scala-repo>/.../Foo.scala
 ```
 
 - First time: it prompts to install the Scala tree-sitter grammar — say yes.
@@ -56,20 +59,25 @@ If A, B, and C work, the setup is fully proven on your machine.
 
 ## 1. Daily launch habit
 
-The editor is a persistent daemon — attach to it instead of starting new Emacsen:
+Launch the GUI via the `.app` bundle (Launch Services) so it gets keyboard focus.
+Add these helpers to `~/.zshrc` (machine-local, not in this repo):
+
+```bash
+ec() { open -a "$HOME/.nix-profile/Applications/Emacs.app" "$@"; }  # GUI, optional files
+et() { "$HOME/.nix-profile/bin/emacs" -nw "$@"; }                   # terminal Emacs
+```
 
 | Command | Use |
 |---|---|
-| `emacsclient -c` | New GUI frame (main use) |
-| `emacsclient -t` | Terminal frame (inside tmux / over ssh) |
-| `emacsclient <file>` | Open a file in the running daemon |
+| `ec` | Open the GUI (main use) |
+| `ec file…` | Open files in the GUI |
+| `et` | Quick terminal Emacs (inside tmux / over ssh) |
 
-`EDITOR`/`VISUAL` point at emacsclient, so `git commit`, `kubectl edit`, etc.
-open in the daemon automatically.
-
-- Close a frame: `C-x 5 0` (the daemon keeps running — fast next open).
-- Restart the daemon after a config change:
-  `launchctl kickstart -k "gui/$(id -u)/org.nix-community.home.emacs"`
+- No daemon is used (the macport daemon can't serve a focus-correct GUI frame on
+  macOS — see §6). The `.app` starts fast.
+- Quit with `C-x C-c`, or close a frame with `C-x 5 0`.
+- To set Emacs as `EDITOR`, point it at a terminal Emacs in `~/.zshrc`:
+  `export EDITOR='emacs -nw'` (or `export EDITOR=ec` if you prefer a GUI editor).
 
 ---
 
@@ -127,9 +135,9 @@ Inside magit: `s` stage, `u` unstage, `c c` commit, `P p` push, `F p` pull,
 
 ### Survival keys (vanilla Emacs)
 
-`C-g` cancel anything · `C-x C-s` save · `C-/` undo · `C-x 5 0` close frame
-(use this, not `C-x C-c`, which would kill the daemon) · `C-h k <key>` describe a
-key · `C-h f <fn>` describe a function.
+`C-g` cancel anything · `C-x C-s` save · `C-/` undo · `C-x C-c` quit Emacs ·
+`C-x 5 0` close one frame · `C-h k <key>` describe a key · `C-h f <fn>` describe
+a function.
 
 ---
 
@@ -138,7 +146,7 @@ key · `C-h f <fn>` describe a function.
 The point of soaking is to discover what's missing for *your* workflow before you
 publish and before you delete any old config.
 
-**Week 1 — force yourself onto it.** Use `emacsclient -c` for real work. Keep
+**Week 1 — force yourself onto it.** Use `ec` (the GUI app) for real work. Keep
 which-key on (it is). Expect friction — note it, don't fix it mid-flow.
 
 **Keep a friction log.** When something annoys you ("I reach for X and it's not
@@ -169,13 +177,13 @@ publish + retire the old config.
 Edit a file in `~/dotfiles/emacs/lisp/`, then:
 
 ```bash
-cd ~/dotfiles && home-manager switch --flake .#"$(whoami)"          # update the store symlink
-launchctl kickstart -k "gui/$(id -u)/org.nix-community.home.emacs"  # restart the daemon
+cd ~/dotfiles && home-manager switch --flake .#"$(whoami)"   # update the store symlink
+# then quit Emacs (C-x C-c) and relaunch: `ec`
 ```
 
 `~/.config/emacs` is Nix-managed symlinks, so editing the repo file is not live
-until you `switch`. (For a quick in-session try you can `M-x eval-buffer`, but
-commit + switch is the real path.)
+until you `switch` and restart Emacs. (For a quick in-session try you can
+`M-x eval-buffer`, but commit + switch + relaunch is the real path.)
 
 ### Tools / packages (Nix)
 
@@ -206,12 +214,14 @@ starts cleanly.
 - **Roll back to the old config entirely:**
   `mv ~/.emacs.d.prelude-backup ~/.emacs.d` — the Nix Emacs is independent, so the
   old config returns instantly. (Don't delete the backup until you're confident.)
-- **GUI won't open from the terminal:** `open ~/.nix-profile/Applications/Emacs.app`.
+- **GUI window has no keyboard focus (keystrokes go to the terminal):** launch
+  via the `.app` (`open -a ~/.nix-profile/Applications/Emacs.app` / `ec`), not a
+  bare `emacs &` or a launchd daemon — Launch Services is what grants focus.
 - **emacs-macport breaks on a macOS update:** temporarily
   `brew install --cask emacs-app` and put `/opt/homebrew/bin` ahead on PATH until
   the overlay catches up.
-- **Config error on startup:** `emacs -Q` launches with zero config to fix things;
-  check `*Messages*` / `*Warnings*` in the running daemon.
+- **Config error on startup:** `emacs -Q -nw` launches with zero config to fix
+  things; check `*Messages*` / `*Warnings*` in the running Emacs.
 - **A package misbehaves:** `M-x elpaca-log` shows build status;
   `M-x elpaca-rebuild` rebuilds one.
 

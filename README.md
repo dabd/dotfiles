@@ -9,9 +9,9 @@ and CLI tools for reproducibility.
 
 ```
 flake.nix / flake.lock   pinned inputs: nixpkgs, home-manager, emacs-overlay
-home.nix                 packages, the Emacs daemon, and the config symlink
+home.nix                 packages and the config symlink
 emacs/
-  early-init.el          pre-frame tuning + Nix exec-path for daemon/.app launches
+  early-init.el          pre-frame tuning + Nix exec-path for GUI .app launches
   init.el                elpaca bootstrap + module loader
   lisp/
     ui.el                modus-vivendi, which-key, font
@@ -38,14 +38,30 @@ nix run home-manager/master -- switch --flake .#"$(whoami)"
 > account. First switch compiles or fetches `emacs-macport` (can be tens of
 > minutes if not cached); later switches are fast.
 
-After the first switch, Emacs runs as a launchd-managed daemon. Attach with:
+## Launching Emacs (macOS)
+
+Launch the **GUI via the `.app` bundle** so the window gets proper macOS keyboard
+focus (Launch Services). Running the bare binary or a launchd-daemon GUI frame
+does *not* receive focus — the window appears but keystrokes leak to the
+terminal (a known macOS activation-policy behavior, worse on macOS 15.x). So:
 
 ```bash
-emacsclient -c     # new GUI frame (primary use)
-emacsclient -t     # terminal frame (e.g. inside tmux)
+open -a ~/.nix-profile/Applications/Emacs.app   # GUI (primary use)
+emacs -nw                                       # quick terminal Emacs
 ```
 
-`EDITOR`/`VISUAL` are set to emacsclient (`services.emacs.defaultEditor`).
+Convenience shell functions (add to `~/.zshrc`, which is machine-local):
+
+```bash
+ec() { open -a "$HOME/.nix-profile/Applications/Emacs.app" "$@"; }  # GUI, optional files
+et() { "$HOME/.nix-profile/bin/emacs" -nw "$@"; }                   # terminal frame
+```
+
+> No Emacs daemon is used. The `emacs-macport` daemon under launchd cannot serve
+> a focus-correct GUI frame on macOS, so this setup launches the GUI app directly
+> instead (it starts fast). `early-init.el` adds the Nix profile to `exec-path`,
+> so the app finds `metals`/`rg`/`curl` even though a GUI app doesn't inherit the
+> shell PATH.
 
 ## Machine-local files (NOT in this repo)
 
@@ -116,14 +132,14 @@ has a built-in `project` feature; a `lisp/project.el` that also configures the
 built-in causes a recursive-`require` clash at startup. The rename avoids it;
 the module still configures the built-in `project` package internally.
 
-## macOS GUI launch / escape hatch
+## macOS GUI escape hatch
 
-The daemon is the normal entry point (`emacsclient -c`). To launch a standalone
-GUI without the daemon, use the app bundle (a bare `emacs &` may start without a
-window on macOS):
+The normal GUI entry point is the app bundle (see "Launching Emacs" above) — a
+bare `emacs &` may start without a window, and a launchd-daemon GUI frame doesn't
+get keyboard focus:
 
 ```bash
-open ~/.nix-profile/Applications/Emacs.app
+open -a ~/.nix-profile/Applications/Emacs.app
 ```
 
 If an `emacs-macport` build ever breaks on a new macOS release, temporarily

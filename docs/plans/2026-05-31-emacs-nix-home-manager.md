@@ -26,14 +26,14 @@
 ~/dotfiles/
 ├── flake.nix              inputs (nixpkgs, home-manager, emacs-overlay) + homeConfigurations
 ├── flake.lock             generated; the reproducibility anchor
-├── home.nix               packages, emacs-overlay wiring, config symlink, daemon
+├── home.nix               packages, emacs-overlay wiring, config symlink
 ├── .gitignore             secret-leak safety net
 ├── README.md              bootstrap + escape hatches (Task 13)
 ├── docs/
 │   ├── specs/2026-05-31-emacs-nix-home-manager-design.md
 │   └── plans/2026-05-31-emacs-nix-home-manager.md   (this file)
 └── emacs/
-    ├── early-init.el      pre-frame tuning + Nix exec-path (daemon/.app launches)
+    ├── early-init.el      pre-frame tuning + Nix exec-path (GUI .app launches)
     ├── init.el            elpaca bootstrap + module loader
     └── lisp/
         ├── ui.el          modus-vivendi, which-key, font, modeline
@@ -516,8 +516,8 @@ open ~/.nix-profile/Applications/Emacs.app   # NOT `emacs &` — see note
 Expected: a GUI Emacs window opens with a dark (modus-vivendi) theme, line numbers, and — after pressing `C-x` and waiting ~0.3s — a which-key popup listing available keys.
 
 > On macOS, a bare `emacs &` (the bare store binary) often starts WITHOUT a
-> window. Launch the `.app` bundle via `open` for a real GUI frame. Once the
-> daemon exists (Task 12), the normal entry point becomes `emacsclient -c`.
+> window. Launch the `.app` bundle via `open -a` for a real GUI frame with
+> keyboard focus. This stays the normal entry point — no daemon (see Task 12).
 
 - [ ] **Step 3: Verify no load errors in batch**
 
@@ -1074,63 +1074,36 @@ cd ~/dotfiles && git add emacs/lisp/llm.el home.nix && git commit -m "feat(emacs
 
 ---
 
-## Task 12: Emacs daemon + emacsclient integration (Phase 6 gate)
+## Task 12: GUI launch + exec-path for non-shell launches (Phase 6 gate)
+
+> **No Emacs daemon.** The original plan enabled `services.emacs` (a launchd
+> daemon) and attached with `emacsclient -c`. On macOS that does NOT work for a
+> GUI: a launchd-daemon GUI frame (and a bare `emacs &`) appears but never gets
+> keyboard focus — keystrokes leak to the terminal (a macOS Launch Services /
+> activation-policy behavior, worse on macOS 15.x; build-independent). The
+> reliable GUI path is the `.app` bundle via Launch Services. So this setup uses
+> NO daemon; you launch the GUI app directly. (It still needs the exec-path fix
+> below, because a `.app` also doesn't inherit the shell PATH.)
 
 **Files:**
-- Modify: `~/dotfiles/home.nix`
+- Modify: `~/dotfiles/emacs/early-init.el`
 
-- [ ] **Step 1: Enable the Emacs daemon service in home.nix**
+- [ ] **Step 1: Add the Nix exec-path fix to early-init.el**
 
-Add to `~/dotfiles/home.nix` (top level, sibling of `home.packages`):
-```nix
-  services.emacs = {
-    enable = true;
-    package = pkgs.emacs-macport;
-    defaultEditor = true;
-  };
-```
-
-- [ ] **Step 2: Switch (registers the launchd service)**
-
-Run:
-```bash
-cd ~/dotfiles && home-manager switch --flake .#"<your-whoami>"
-```
-Expected: activates with a line about the emacs service.
-
-- [ ] **Step 3: Verify the daemon is running**
-
-Run:
-```bash
-emacsclient --eval '(emacs-pid)' 2>&1
-```
-Expected: prints a PID number (the daemon answered). If it says "can't find socket", run `emacs --daemon` once and note that the launchd service may need a logout/login to start; record the finding.
-
-- [ ] **Step 4: Verify terminal attach from a tmux pane**
-
-Run (inside tmux):
-```bash
-emacsclient -t --eval '(message "client-ok")' 2>&1 | tail -1
-```
-Expected: opens a terminal Emacs frame / prints `client-ok` (PHASE 6 GATE).
-
-- [ ] **Step 5: Fix the daemon PATH (CRITICAL — eglot/consult need it)**
-
-A launchd-started daemon (and a macOS `.app`) inherit only the bare system PATH
-(`/usr/bin:/bin:...`), NOT the Nix profile — so inside the daemon
-`executable-find` returns nil for `metals` (eglot), `rg`/`fd` (consult/project),
-`curl` (gptel). Add this to the END of `~/dotfiles/emacs/early-init.el` (before
-the `;;; early-init.el ends here` line):
+A macOS `.app` (and any non-shell launch) inherits only the bare system PATH
+(`/usr/bin:/bin:...`), NOT the Nix profile — so `executable-find` returns nil for
+`metals` (eglot), `rg`/`fd` (consult/project), `curl` (gptel). Add this to the
+END of `~/dotfiles/emacs/early-init.el` (before the `;;; early-init.el ends here`):
 ```elisp
-;; PATH for non-shell launches. A launchd daemon (services.emacs) or a macOS
-;; .app bundle inherits only the bare system PATH (/usr/bin:/bin:...), not the
-;; Nix profile — so executable-find fails for metals (eglot), rg/fd
-;; (consult/project), curl (gptel), etc. Nix is this config's single source of
-;; truth for tools, so prepend the Nix profile dirs to exec-path and $PATH.
-;; OS-agnostic and dependency-free (no exec-path-from-shell); covers standalone
-;; home-manager (~/.nix-profile/bin, macOS + Linux) and system/NixOS profiles.
-;; Other tools (e.g. git) stay on the inherited system PATH. Absent dirs are
-;; skipped, so this is a no-op on a non-Nix machine.
+;; PATH for non-shell launches. A macOS .app bundle (and a launchd daemon)
+;; inherits only the bare system PATH (/usr/bin:/bin:...), not the Nix profile —
+;; so executable-find fails for metals (eglot), rg/fd (consult/project), curl
+;; (gptel), etc. Nix is this config's single source of truth for tools, so
+;; prepend the Nix profile dirs to exec-path and $PATH. OS-agnostic and
+;; dependency-free (no exec-path-from-shell); covers standalone home-manager
+;; (~/.nix-profile/bin, macOS + Linux) and system/NixOS profiles. Other tools
+;; (e.g. git) stay on the inherited system PATH. Absent dirs are skipped, so
+;; this is a no-op on a non-Nix machine.
 (dolist (nix-bin (list (expand-file-name "~/.nix-profile/bin")
                        (concat "/etc/profiles/per-user/" (user-login-name) "/bin")
                        "/run/current-system/sw/bin"))
@@ -1140,23 +1113,38 @@ the `;;; early-init.el ends here` line):
       (unless (and path (string-match-p (regexp-quote nix-bin) path))
         (setenv "PATH" (concat nix-bin path-separator path))))))
 ```
-Re-switch, restart the daemon, and verify it now finds the tools:
+
+- [ ] **Step 2: Switch**
+
 ```bash
 cd ~/dotfiles && home-manager switch --flake .#"<your-whoami>"
-launchctl kickstart -k "gui/$(id -u)/org.nix-community.home.emacs"
-sleep 5
-SOCK=$(ls "$TMPDIR"/emacs$(id -u)/server 2>/dev/null || ls /var/folders/*/*/T/emacs$(id -u)/server 2>/dev/null | head -1)
-emacsclient -s "$SOCK" --eval '(list (executable-find "metals") (executable-find "rg"))'
 ```
-Expected: both resolve to `~/.nix-profile/bin/...` (NOT nil).
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 3: Launch the GUI via the .app bundle (PHASE 6 GATE)**
 
 ```bash
-cd ~/dotfiles && git add home.nix emacs/early-init.el && git commit -m "feat: emacs daemon via launchd + emacsclient as default editor"
+open -a ~/.nix-profile/Applications/Emacs.app
 ```
-> (As built this was two commits — the daemon block, then the exec-path fix. One
-> combined commit is fine for a fresh run.)
+Expected: a GUI window opens with the modus theme **and accepts keyboard input**
+(focus is correct because Launch Services activated it). Add shell helpers to
+`~/.zshrc` (machine-local, not in the repo):
+```bash
+ec() { open -a "$HOME/.nix-profile/Applications/Emacs.app" "$@"; }  # GUI
+et() { "$HOME/.nix-profile/bin/emacs" -nw "$@"; }                   # terminal Emacs
+```
+
+- [ ] **Step 4: Verify the app finds the Nix tools (exec-path fix works)**
+
+```bash
+emacs --batch -l ~/.config/emacs/early-init.el -l ~/.config/emacs/init.el --eval '(elpaca-wait)' --eval '(message "metals=%s rg=%s nixbin=%s" (executable-find "metals") (executable-find "rg") (and (member (expand-file-name "~/.nix-profile/bin") exec-path) t))' 2>&1 | tail -2
+```
+Expected: `metals` and `rg` resolve to `~/.nix-profile/bin/...`, `nixbin=t`.
+
+- [ ] **Step 5: Commit**
+
+```bash
+cd ~/dotfiles && git add emacs/early-init.el && git commit -m "feat(emacs): Nix exec-path for GUI .app launches (no daemon)"
+```
 
 ---
 
@@ -1169,14 +1157,15 @@ cd ~/dotfiles && git add home.nix emacs/early-init.el && git commit -m "feat: em
 - [ ] **Step 1: Write README.md**
 
 Write `~/dotfiles/README.md` covering: bootstrap (`git clone` +
-`nix run home-manager/master -- switch --flake .#"$(whoami)"`), the
-`emacsclient -c`/`-t` daemon workflow, the two machine-local files under
+`nix run home-manager/master -- switch --flake .#"$(whoami)"`), the GUI launch
+(`open -a ~/.nix-profile/Applications/Emacs.app`, with `ec`/`et` shell helpers —
+no daemon, see Task 12), the two machine-local files under
 `~/.config/emacs-local/` (`local.el` for enterprise forge hosts, `llm-local.el`
 for the gptel/Bedrock backend) with examples, secrets (Bedrock via AWS profile;
 tokens via auth-source — nothing committed), the Scala/Metals notes (grammar
-prompt, slow first attach), the `projects.el` naming note, the macOS GUI launch
-(`open ~/.nix-profile/Applications/Emacs.app`) + brew-cask escape hatch, and the
-work/personal git split (`~/.gitconfig` `includeIf`, not managed here). See the
+prompt, slow first attach), the `projects.el` naming note, the brew-cask escape
+hatch, and the work/personal git split (`~/.gitconfig` `includeIf`, not managed
+here). See the
 committed `README.md` for the full as-built text.
 
 - [ ] **Step 2: Commit the README**
@@ -1301,12 +1290,20 @@ them over the verbatim code blocks above where they conflict.
    (Forge enterprise PRs) is verified interactively with real tokens rather than
    a committed step.
 
-10. **Daemon PATH fix (Task 12).** A launchd-started daemon (and a macOS `.app`)
-    inherit only the bare system PATH, so eglot couldn't find `metals` and
-    consult/project couldn't find `rg`. `early-init.el` prepends the Nix profile
-    dirs (`~/.nix-profile/bin`, plus NixOS `/etc/profiles/per-user/$USER/bin` and
-    `/run/current-system/sw/bin`) to `exec-path`/`$PATH` — OS-agnostic, no
-    Homebrew assumption, no `exec-path-from-shell` dependency.
+10. **No daemon; GUI via `.app`; exec-path fix (Task 12).** The plan originally
+    enabled `services.emacs` (launchd daemon) + `emacsclient -c`. On macOS a
+    launchd-daemon GUI frame (and a bare `emacs &`) appears but never gets
+    keyboard focus — keystrokes leak to the terminal (a macOS Launch Services /
+    activation-policy behavior, worse on macOS 15.x, and build-independent — the
+    NS port / emacs-plus would hit it too). Resolution: **drop the daemon**
+    (`services.emacs` removed from `home.nix`) and launch the GUI through the
+    `.app` bundle (`open -a ~/.nix-profile/Applications/Emacs.app`, wrapped by an
+    `ec` shell helper) — Launch Services grants focus correctly. Independently, a
+    `.app` (like a daemon) doesn't inherit the shell PATH, so `early-init.el`
+    prepends the Nix profile dirs (`~/.nix-profile/bin`, plus NixOS
+    `/etc/profiles/per-user/$USER/bin` and `/run/current-system/sw/bin`) to
+    `exec-path`/`$PATH` so eglot/consult/gptel find `metals`/`rg`/`curl` —
+    OS-agnostic, no Homebrew assumption, no `exec-path-from-shell` dependency.
 
 11. **Pre-publish scrub.** Enterprise hostnames and work/personal emails that
     appeared in this plan and the spec were redacted to placeholders and the git
