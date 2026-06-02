@@ -7,7 +7,7 @@
   :config
   (setq doom-themes-enable-bold t
         doom-themes-enable-italic t)
-  (load-theme 'doom-one t))
+  (load-theme 'doom-dracula t))
 
 ;; which-key is built in on Emacs 30; enable it.
 (use-package which-key
