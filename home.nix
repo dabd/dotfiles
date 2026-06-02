@@ -6,6 +6,12 @@
 
   programs.home-manager.enable = true;
 
+  services.emacs = {
+    enable = true;
+    package = pkgs.emacs-macport;
+    defaultEditor = true;
+  };
+
   home.packages = with pkgs; [
     ripgrep
     fd
