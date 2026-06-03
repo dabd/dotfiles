@@ -25,6 +25,14 @@ emacs/transient/
 emacs/var/
 custom.el
 
+# Emacs lock / auto-save / backup files (anywhere)
+\#*\#
+.\#*
+*~
+
+# Markdown live-preview output (e.g. docs/*.html from markdown-live-preview-mode)
+docs/*.html
+
 # Machine-local Emacs config (never commit — enterprise hosts, etc.)
 # Primary location is ~/.config/emacs-local/ (outside this repo). This pattern
 # is a belt-and-suspenders guard in case a local.el is ever placed in the tree.
