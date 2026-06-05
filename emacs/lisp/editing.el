@@ -15,6 +15,25 @@
 (use-package expand-region
   :bind ("C-=" . er/expand-region))
 
+;; Session persistence: restore open buffers + window layout on each launch.
+;; No daemon here, so a config change means quit + relaunch; without this the
+;; open-buffer set is lost each time. State lives in ~/.config/emacs/easysession/
+;; (runtime, not the repo). easysession is used instead of the built-in
+;; desktop.el because it cooperates with elpaca's async package loading: its
+;; `easysession-setup' detects elpaca and registers restore on
+;; `elpaca-after-init-hook' (after every package is built), so restored buffers
+;; get their real major modes and compat 31 is loaded before any minibuffer
+;; buffer is recreated. (desktop.el restores on `after-init-hook', which runs
+;; mid-elpaca-queue - that raced packages and broke vertico's minibuffer setup.)
+(use-package easysession
+  :demand t                        ; must load eagerly so setup can register hooks
+  :custom
+  ;; Restore buffers + window layout, but NOT frame size/position. Must be set
+  ;; before `easysession-setup' runs.
+  (easysession-setup-load-session-including-geometry nil)
+  :config
+  (easysession-setup))
+
 ;; IntelliJ Cmd-D "duplicate line" equivalent.
 (defun dabd/duplicate-line ()
   "Duplicate the current line below point."
