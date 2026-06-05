@@ -22,6 +22,15 @@
          ("C-x b" . consult-buffer)
          ("M-y"   . consult-yank-pop)))
 
+;; C-x b (consult-buffer) is the fast fuzzy switcher. Bind C-x C-b to the
+;; electric buffer browser/manager instead of the static `list-buffers' table:
+;; a self-contained recursive-edit list (n/p to move, RET select, d/x to mark
+;; and kill buffers) that restores the window layout on exit. Built in via
+;; ebuff-menu; loads lazily on the key.
+(use-package ebuff-menu
+  :ensure nil
+  :bind ("C-x C-b" . electric-buffer-list))
+
 (use-package corfu
   :init (global-corfu-mode)
   :custom
