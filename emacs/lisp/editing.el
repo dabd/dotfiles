@@ -26,13 +26,25 @@
 ;; buffer is recreated. (desktop.el restores on `after-init-hook', which runs
 ;; mid-elpaca-queue - that raced packages and broke vertico's minibuffer setup.)
 (use-package easysession
-  :demand t                        ; must load eagerly so setup can register hooks
-  :custom
-  ;; Restore buffers + window layout, but NOT frame size/position. Must be set
-  ;; before `easysession-setup' runs.
-  (easysession-setup-load-session-including-geometry nil)
+  :demand t                        ; load eagerly so the startup wiring below runs
   :config
-  (easysession-setup))
+  ;; Restore the session + arm auto-save once every package is loaded. We do
+  ;; NOT use `easysession-setup': it blindly `add-hook's onto
+  ;; `elpaca-after-init-hook', but this :config (deferred by elpaca until the
+  ;; package builds) can run *after* that hook has already fired - leaving the
+  ;; restore function on a spent hook so it never runs. Instead, run now if the
+  ;; hook already fired, else defer to it. Either way restore happens after
+  ;; compat 31 + all major modes are loaded (so no Fundamental-mode buffers and
+  ;; no minibuffer breakage). Plain `easysession-load' restores buffers + window
+  ;; layout but NOT frame geometry (that needs `easysession-load-including-
+  ;; geometry'), which is the intent here. It also creates and activates the
+  ;; "main" session when no save file exists yet, so the first quit can save it.
+  (defun dabd/easysession-start ()
+    (easysession-save-mode 1)      ; auto-save (timer + on kill-emacs)
+    (easysession-load))            ; restore, or create "main" on first run
+  (if (bound-and-true-p elpaca-after-init-time)
+      (dabd/easysession-start)
+    (add-hook 'elpaca-after-init-hook #'dabd/easysession-start)))
 
 ;; IntelliJ Cmd-D "duplicate line" equivalent.
 (defun dabd/duplicate-line ()
