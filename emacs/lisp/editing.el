@@ -16,7 +16,15 @@
   :init (desktop-save-mode 1)
   :custom
   (desktop-save t)                          ; save on exit without prompting
-  (desktop-load-locked-desktop 'check-pid)) ; ignore a stale lock from a dead Emacs
+  (desktop-load-locked-desktop 'check-pid)  ; ignore a stale lock from a dead Emacs
+  :config
+  ;; Pin the desktop file to ~/.config/emacs/. `desktop-dirname' is otherwise
+  ;; set only as a side effect of `desktop-read' on `after-init-hook'; if it is
+  ;; still nil at exit (e.g. the mode was toggled on after init), `desktop-kill'
+  ;; prompts for a directory defaulting to the current buffer's dir. Pinning it
+  ;; makes the save location deterministic and silent.
+  (setq desktop-path (list user-emacs-directory)
+        desktop-dirname user-emacs-directory))
 
 (use-package multiple-cursors
   :bind (("C->"     . mc/mark-next-like-this)
