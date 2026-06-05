@@ -7,6 +7,17 @@
 (setq-default indent-tabs-mode nil)
 (electric-pair-mode 1)
 
+;; Session persistence: restore the set of open buffers/windows on restart.
+;; No daemon here, so a config change means a full quit + relaunch - without
+;; this, the open-buffer set is lost each time. State lives in the runtime
+;; ~/.config/emacs/ (not the repo). `save-place-mode' above then restores point.
+(use-package desktop
+  :ensure nil
+  :init (desktop-save-mode 1)
+  :custom
+  (desktop-save t)                          ; save on exit without prompting
+  (desktop-load-locked-desktop 'check-pid)) ; ignore a stale lock from a dead Emacs
+
 (use-package multiple-cursors
   :bind (("C->"     . mc/mark-next-like-this)
          ("C-<"     . mc/mark-previous-like-this)
