@@ -25,5 +25,18 @@
     (forward-line 1) (move-to-column col)))
 (global-set-key (kbd "C-c d") #'dabd/duplicate-line)
 
+;; Copy the current buffer's file path to the kill ring. With a prefix arg,
+;; copy only the file name. Works in dired buffers via `list-buffers-directory'.
+(defun dabd/copy-buffer-path (&optional just-name)
+  "Copy the current buffer's file path to the kill ring.
+With prefix arg JUST-NAME, copy only the file name."
+  (interactive "P")
+  (if-let* ((path (or (buffer-file-name) list-buffers-directory)))
+      (let ((out (if just-name (file-name-nondirectory path) path)))
+        (kill-new out)
+        (message "Copied: %s" out))
+    (user-error "Buffer is not visiting a file")))
+(global-set-key (kbd "C-c w") #'dabd/copy-buffer-path)
+
 (provide 'editing)
 ;;; editing.el ends here
