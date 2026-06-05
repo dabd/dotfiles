@@ -7,46 +7,6 @@
 (setq-default indent-tabs-mode nil)
 (electric-pair-mode 1)
 
-;; Session persistence: restore the set of open buffers/windows on restart.
-;; No daemon here, so a config change means a full quit + relaunch - without
-;; this, the open-buffer set is lost each time. State lives in the runtime
-;; ~/.config/emacs/ (not the repo). `save-place-mode' above then restores point.
-;;
-;; The restore is deferred to `elpaca-after-init-hook', NOT enabled eagerly.
-;; desktop normally restores on `after-init-hook', but elpaca loads packages
-;; asynchronously *after* that hook, so an eager restore races two ways:
-;;   1. buffers come back in Fundamental mode because their major modes
-;;      (markdown-mode, scala-ts-mode, ...) are not loaded yet; and
-;;   2. restoring a vertico/corfu buffer forces an early `(require 'compat)'
-;;      that - before elpaca puts its build dirs on `load-path' - resolves to
-;;      Emacs' built-in compat 30, permanently shadowing elpaca's compat 31.
-;;      That leaves `set-local' (a compat-31 function vertico calls) void and
-;;      breaks the minibuffer (vertico--setup errors on every M-x).
-;; `elpaca-after-init-hook' fires once the package queue is drained, so compat
-;; 31 and all major modes are loaded before we restore.
-(defun dabd/desktop-init ()
-  "Enable session persistence and restore the saved desktop.
-Run only after elpaca has loaded every package, so restored buffers get
-their real major modes (markdown-mode, scala-ts-mode, ...) and compat 31
-is in place before any minibuffer/corfu buffer is recreated."
-  (setq desktop-save t                       ; save on exit without prompting
-        desktop-load-locked-desktop 'check-pid ; ignore a stale lock (dead Emacs)
-        ;; Pin the save file to ~/.config/emacs/ so the location is
-        ;; deterministic and `desktop-kill' never prompts on exit.
-        desktop-path (list user-emacs-directory)
-        desktop-dirname user-emacs-directory)
-  (desktop-save-mode 1)
-  (desktop-read))
-
-(use-package desktop
-  :ensure nil
-  :init
-  ;; This :init may run before OR after elpaca-after-init-hook fires, depending
-  ;; on queue timing, so handle both: run now if it already fired, else defer.
-  (if (bound-and-true-p elpaca-after-init-time)
-      (dabd/desktop-init)
-    (add-hook 'elpaca-after-init-hook #'dabd/desktop-init)))
-
 (use-package multiple-cursors
   :bind (("C->"     . mc/mark-next-like-this)
          ("C-<"     . mc/mark-previous-like-this)
