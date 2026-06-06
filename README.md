@@ -1,9 +1,9 @@
 # dabd dotfiles
 
 Vanilla Emacs + tooling, managed by Nix home-manager. Reproducible across
-machines (macOS and, in principle, Linux). The Emacs config is plain Elisp —
-it works even cloned without Nix; Nix just pins the binary, language servers,
-and CLI tools for reproducibility.
+machines (macOS and, in principle, Linux). The Emacs config is plain Elisp, so
+it works even cloned without Nix. Nix pins the binary, language servers, and CLI
+tools for reproducibility.
 
 ## Layout
 
@@ -42,7 +42,7 @@ nix run home-manager/master -- switch --flake .#"$(whoami)"
 
 Launch the **GUI via the `.app` bundle** so the window gets proper macOS keyboard
 focus (Launch Services). Running the bare binary or a launchd-daemon GUI frame
-does *not* receive focus — the window appears but keystrokes leak to the
+does *not* receive focus: the window appears but keystrokes leak to the
 terminal (a known macOS activation-policy behavior, worse on macOS 15.x). So:
 
 ```bash
@@ -71,7 +71,7 @@ this repo, are **never committed**, and are created by hand once per machine.
 `~/.config/emacs-local/` instead. Both are loaded with a NOERROR guard, so a
 machine without them still starts cleanly.
 
-### `~/.config/emacs-local/local.el` — enterprise git/forge hosts
+### `~/.config/emacs-local/local.el`: enterprise git/forge hosts
 
 Registers enterprise GitHub hosts with Forge. Kept out of this public repo
 because the hostnames are work infrastructure. Example:
@@ -85,7 +85,7 @@ because the hostnames are work infrastructure. Example:
 (provide 'local)
 ```
 
-### `~/.config/emacs-local/llm-local.el` — gptel backend
+### `~/.config/emacs-local/llm-local.el`: gptel backend
 
 Selects the LLM backend for this machine. `llm.el` ships no backend, so gptel is
 inert until this file provides one. On a work laptop with AWS Bedrock:
@@ -104,8 +104,8 @@ inert until this file provides one. On a work laptop with AWS Bedrock:
 (provide 'llm-local)
 ```
 
-Bedrock auth uses the AWS profile (SigV4) — no API key. It needs a valid AWS
-session (e.g. `aws sso login`) and curl ≥ 8.9 (provided by `home.nix`; macOS
+Bedrock auth uses the AWS profile (SigV4), no API key. It needs a valid AWS
+session (e.g. `aws sso login`) and curl >= 8.9 (provided by `home.nix`; macOS
 ships 8.7). A personal machine could instead point gptel at any other backend
 (an API key via auth-source, a local Ollama, etc.).
 
@@ -120,7 +120,7 @@ via an AWS profile (above); GitHub/Forge tokens resolve through auth-source
 `lsp.el` uses the built-in `eglot`. The primary language is **Scala** via
 **Metals** (`metals` is in `home.nix`; `scala-ts-mode` is the major mode, and
 eglot is mapped to launch Metals for it). On first open of a `.scala` file,
-treesit-auto prompts to install the Scala tree-sitter grammar — accept it.
+treesit-auto prompts to install the Scala tree-sitter grammar; accept it.
 Metals downloads and indexes its build server on first attach, so the first
 connection in a project is slow. Add more languages by adding the server to
 `home.nix` and a `-ts-mode` hook in `lsp.el`.
@@ -134,7 +134,7 @@ the module still configures the built-in `project` package internally.
 
 ## macOS GUI escape hatch
 
-The normal GUI entry point is the app bundle (see "Launching Emacs" above) — a
+The normal GUI entry point is the app bundle (see "Launching Emacs" above). A
 bare `emacs &` may start without a window, and a launchd-daemon GUI frame doesn't
 get keyboard focus:
 
@@ -149,5 +149,5 @@ install the Homebrew cask (`brew install --cask emacs-app`) and put
 ## Work / personal git
 
 `~/.gitconfig` (machine-local, not in this repo) routes identity by directory via
-`includeIf`. Magit inherits this automatically by shelling out to `git` — no
-identity config in Emacs. Enterprise hosts and work emails stay out of this repo.
+`includeIf`. Magit inherits this by shelling out to `git`, so Emacs needs no
+identity config. Enterprise hosts and work emails stay out of this repo.
