@@ -240,8 +240,8 @@ steps isolated. Prelude is not deleted until the new setup is proven.
   work/personal git split.
 
 Session-root handoff: Phase 0 can run in the current (work) session. **Phase 1
-onward runs from a fresh session rooted at `~/dotfiles`** — correct cwd for git
-defaults and for filing personal-project memory outside the work work project.
+onward runs from a fresh session rooted at `~/dotfiles`** - correct cwd for git
+defaults and for filing personal-project memory outside the work project.
 
 ## Deferred backlog (out of scope for v1)
 
