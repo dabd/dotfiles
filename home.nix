@@ -1,7 +1,8 @@
-{ config, pkgs, ... }:
+{ config, pkgs, username, homeDirectory, ... }:
 {
-  home.username = "<your-whoami>";
-  home.homeDirectory = "/Users/<your-whoami>";
+  # username/homeDirectory are supplied per-machine by the flake's mkHome.
+  home.username = username;
+  home.homeDirectory = homeDirectory;
   home.stateVersion = "24.11";
 
   programs.home-manager.enable = true;
