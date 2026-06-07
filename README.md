@@ -33,10 +33,21 @@ cd ~/dotfiles
 nix run home-manager/master -- switch --flake .#"$(whoami)"
 ```
 
-> The flake's `homeConfigurations` key is the username `<your-whoami>`;
-> adjust `flake.nix` (`home.username`/`home.homeDirectory`) for a different
-> account. First switch compiles or fetches `emacs-macport` (can be tens of
-> minutes if not cached); later switches are fast.
+> The `--flake .#"$(whoami)"` selects the `homeConfigurations` entry named for
+> your login. The flake ships one entry (`<your-whoami>`). For a new
+> machine, add an entry in `flake.nix` with that machine's `whoami` and
+> `uname -m`:
+>
+> ```nix
+> "<your-whoami>" = mkHome {
+>   system = "aarch64-darwin";   # x86_64-darwin on Intel; *-linux on Linux
+>   username = "<your-whoami>";
+> };
+> ```
+>
+> `mkHome` derives the home directory from the OS, so one entry covers macOS and
+> Linux. First switch compiles or fetches `emacs-macport` (can be tens of minutes
+> if not cached); later switches are fast.
 
 ## Launching Emacs (macOS)
 
