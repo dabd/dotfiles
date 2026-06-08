@@ -37,3 +37,6 @@ docs/*.html
 # Primary location is ~/.config/emacs-local/ (outside this repo). This pattern
 # is a belt-and-suspenders guard in case a local.el is ever placed in the tree.
 emacs/lisp/local.el
+
+# Session resume notes - local-only, not published
+docs/HANDOFF.md
