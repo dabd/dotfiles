@@ -13,6 +13,7 @@
     emacs-macport
     metals          # Scala LSP server (Metals)
     curl            # >= 8.9, required by gptel's Bedrock SigV4 signing (macOS ships 8.7)
+    pandoc          # GFM -> HTML for markdown-mode preview (see lisp/markup.el)
   ];
 
   # Symlink the plain-Elisp config into place. Nix never generates this;

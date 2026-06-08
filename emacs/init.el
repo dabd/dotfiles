@@ -47,7 +47,7 @@
 
 ;;; --- load modules (added in later tasks) ---
 (add-to-list 'load-path (expand-file-name "lisp" user-emacs-directory))
-(dolist (m '(ui completion editing projects lsp git llm))
+(dolist (m '(ui completion editing projects lsp git llm markup))
   (when (locate-library (symbol-name m))
     (require m)))
 
