@@ -2,9 +2,11 @@
 
 ;; markdown-mode itself arrives as a forge dependency and needs no declaration;
 ;; this module only fixes its preview. The defaults render via the old
-;; Daringfireball `markdown' (CSS-less, no GFM) with no stylesheet, so both the
-;; browser export (C-c C-c v) and the live preview (C-c C-c l) look bare. Use
-;; pandoc for GFM -> HTML and inject a stylesheet so the output is readable.
+;; Daringfireball `markdown' (CSS-less, no GFM) with no stylesheet, so the
+;; preview (C-c C-c p) looks bare. Use pandoc for GFM -> HTML and inject a
+;; stylesheet so the output is readable. C-c C-c p (markdown-preview) renders
+;; to the browser via a temp buffer and writes no file; prefer it over
+;; C-c C-c v (export-and-preview), which leaves a sibling .html on disk.
 (use-package markdown-mode
   :defer t
   :custom
