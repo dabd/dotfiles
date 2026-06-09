@@ -1,5 +1,5 @@
 {
-  description = "dabd dotfiles — Emacs + tooling via home-manager";
+  description = "dotfiles - Emacs + tooling via home-manager";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";

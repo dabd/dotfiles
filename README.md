@@ -1,4 +1,4 @@
-# dabd dotfiles
+# dotfiles
 
 Vanilla Emacs + tooling, managed by Nix home-manager. Reproducible across
 machines (macOS and, in principle, Linux). The Emacs config is plain Elisp, so
