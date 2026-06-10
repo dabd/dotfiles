@@ -13,6 +13,12 @@
                      (treesit-font-lock-recompute-features)
                      (font-lock-flush))))
 
+;; Groovy major mode (regexp-based; no built-in mode, no tree-sitter grammar to
+;; manage). Covers .groovy, .gradle, and Jenkinsfile / *.Jenkinsfile, which are
+;; a Groovy DSL. Syntax highlighting only -- no language server wired.
+(use-package groovy-mode
+  :mode ("\\.groovy\\'" "\\.gradle\\'" "/Jenkinsfile\\'" "\\.Jenkinsfile\\'"))
+
 (use-package eglot
   :ensure nil
   :hook ((scala-ts-mode . eglot-ensure))
