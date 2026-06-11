@@ -19,6 +19,12 @@
 (use-package groovy-mode
   :mode ("\\.groovy\\'" "\\.gradle\\'" "/Jenkinsfile\\'" "\\.Jenkinsfile\\'"))
 
+;; Terraform / HCL major mode (regexp-based; no built-in mode, no tree-sitter
+;; grammar to manage). terraform-mode bundles hcl-mode for plain .hcl files.
+;; Syntax highlighting only -- no language server wired.
+(use-package terraform-mode
+  :mode ("\\.tf\\'" "\\.tfvars\\'" "\\.hcl\\'"))
+
 (use-package eglot
   :ensure nil
   :hook ((scala-ts-mode . eglot-ensure))
