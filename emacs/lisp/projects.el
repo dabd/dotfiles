@@ -5,7 +5,19 @@
 ;; project.el is built in; bindings live under C-x p (see which-key).
 (use-package project :ensure nil)
 
-;; treesit-auto installs/maps tree-sitter grammars to *-ts-modes automatically.
+;; Tree-sitter grammars come from Nix (home.nix installs the prebuilt bundle
+;; into ~/.nix-profile/lib as libtree-sitter-LANG.dylib). Add that dir to the
+;; grammar search path so built-in *-ts-modes (json, yaml, toml, ...) and the
+;; scala grammar load with no per-machine install. The NixOS system profile path
+;; is included for Linux; absent dirs are simply ignored.
+(dolist (dir (list (expand-file-name "~/.nix-profile/lib")
+                   "/run/current-system/sw/lib"))
+  (when (file-directory-p dir)
+    (add-to-list 'treesit-extra-load-path dir)))
+
+;; treesit-auto maps grammars to *-ts-modes. With the Nix grammars already on
+;; the load path it rarely needs to fetch; `prompt' stays as a fallback for any
+;; language not in the bundle.
 (use-package treesit-auto
   :custom (treesit-auto-install 'prompt)
   :config
