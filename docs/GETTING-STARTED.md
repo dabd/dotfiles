@@ -172,12 +172,15 @@ publish + retire the old config.
 
 ## 4. Editing the config (the dev loop)
 
+You run `switch` only when you change the config or tooling. Daily editing
+needs none of it: launch with `ec` and go.
+
 ### Elisp tweaks (most changes)
 
 Edit a file in `~/dotfiles/emacs/lisp/`, then:
 
 ```bash
-cd ~/dotfiles && home-manager switch --flake .#"$(whoami)"   # update the store symlink
+cd ~/dotfiles && home-manager switch --flake .#default --impure   # update the store symlink
 # then quit Emacs (C-x C-c) and relaunch: `ec`
 ```
 

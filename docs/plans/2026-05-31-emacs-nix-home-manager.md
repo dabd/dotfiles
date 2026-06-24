@@ -1309,5 +1309,18 @@ them over the verbatim code blocks above where they conflict.
     appeared in this plan and the spec were redacted to placeholders and the git
     history was rewritten before any push, since the repo is intended to be
     public. `git` is intentionally left as the system binary (not Nix) to avoid
-    risking enterprise credential helpers / `includeIf` routing — added to the
+    risking enterprise credential helpers / `includeIf` routing - added to the
     deferred backlog with a "verify enterprise auth first" caveat.
+
+12. **Single env-derived flake entry (post-publish).** The per-machine
+    `homeConfigurations.<whoami>` design (one named `mkHome` block per machine,
+    selected with `.#"$(whoami)"`) was replaced by one machine-agnostic
+    `homeConfigurations.default` that reads `username` from `builtins.getEnv
+    "USER"` and `system` from `builtins.currentSystem`. This keeps any real login
+    out of the committed flake - the original named entry was a `first.last` work
+    login, an identity leak on a public repo. Switch command is now
+    `home-manager switch --flake .#default --impure`; reading the environment
+    makes evaluation impure, but `flake.lock` still pins the toolchain. The
+    verbatim `.#"<your-whoami>"` blocks above predate this change. (A history
+    rewrite scrubbed the leaked login + author name from all commits at the same
+    time.)

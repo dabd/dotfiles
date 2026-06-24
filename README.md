@@ -30,24 +30,17 @@ Requires Nix (with flakes) installed and permitted on the target machine.
 ```bash
 git clone https://github.com/dabd/dotfiles ~/dotfiles
 cd ~/dotfiles
-nix run home-manager/master -- switch --flake .#"$(whoami)"
+nix run home-manager/master -- switch --flake .#default --impure
 ```
 
-> The `--flake .#"$(whoami)"` selects the `homeConfigurations` entry named for
-> your login. The flake ships one entry (`<your-whoami>`). For a new
-> machine, add an entry in `flake.nix` with that machine's `whoami` and
-> `uname -m`:
->
-> ```nix
-> "<your-whoami>" = mkHome {
->   system = "aarch64-darwin";   # x86_64-darwin on Intel; *-linux on Linux
->   username = "<your-whoami>";
-> };
-> ```
->
-> `mkHome` derives the home directory from the OS, so one entry covers macOS and
-> Linux. First switch compiles or fetches `emacs-macport` (can be tens of minutes
-> if not cached); later switches are fast.
+> The flake ships one machine-agnostic entry, `default`. It reads your username
+> from `$USER` and the platform from `builtins.currentSystem` at switch time, so
+> nothing machine-specific is committed and the same command works on every
+> machine. Reading the environment makes evaluation impure, hence `--impure`;
+> `flake.lock` still pins the toolchain, so what gets installed stays
+> reproducible. `mkHome` derives the home directory from the OS, so one entry
+> covers macOS and Linux. First switch compiles or fetches `emacs-macport` (can
+> be tens of minutes if not cached); later switches are fast.
 
 ## Launching Emacs (macOS)
 
