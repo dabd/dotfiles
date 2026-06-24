@@ -40,3 +40,6 @@ emacs/lisp/local.el
 
 # Session resume notes - local-only, not published
 docs/HANDOFF.md
+
+# Superpowers session handoffs - local-only scratchpads, not published
+docs/superpowers/
