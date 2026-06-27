@@ -30,6 +30,14 @@
   (dired-listing-switches "-alh")
   (dired-dwim-target t))
 
+;; nix-ts-mode: tree-sitter major mode for .nix files. Emacs ships no Nix mode,
+;; so without this a .nix buffer falls back to fundamental-mode. The grammar is
+;; already provided by Nix (libtree-sitter-nix in ~/.nix-profile/lib, on the
+;; search path above), so this loads with no grammar prompt. Tree-sitter is
+;; chosen over the older regex-based nix-mode for correct attrset/multiline
+;; indentation and consistency with the treesit-first config.
+(use-package nix-ts-mode :mode "\\.nix\\'")
+
 ;; treemacs: a persistent file-tree side panel (the IntelliJ "Project view"
 ;; analog), toggled with C-x t t. LSP-agnostic - it tracks files, not symbols,
 ;; so it needs nothing from eglot. `treemacs-project-follow-mode' keeps the tree
