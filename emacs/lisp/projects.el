@@ -30,5 +30,14 @@
   (dired-listing-switches "-alh")
   (dired-dwim-target t))
 
+;; treemacs: a persistent file-tree side panel (the IntelliJ "Project view"
+;; analog), toggled with C-x t t. LSP-agnostic - it tracks files, not symbols,
+;; so it needs nothing from eglot. `treemacs-project-follow-mode' keeps the tree
+;; focused on the project of the current buffer instead of a manually pinned set.
+(use-package treemacs
+  :bind ("C-x t t" . treemacs)
+  :config
+  (treemacs-project-follow-mode 1))
+
 (provide 'projects)
 ;;; projects.el ends here
