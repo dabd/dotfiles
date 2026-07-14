@@ -41,7 +41,21 @@
     "th,td{border:1px solid #d1d9e0;padding:6px 13px;}"
     "tr:nth-child(2n){background:#f6f8fa;}"
     "img{max-width:100%;}"
-    "</style>")))
+    "</style>"
+    ;; Render ```mermaid fenced blocks as diagrams in the browser preview.
+    ;; Pandoc turns the fence into <pre class="mermaid"><code>SOURCE</code></pre>,
+    ;; but mermaid.js reads the diagram source as the element's direct text, so
+    ;; the nested <code> must be unwrapped first (verified: leaving it nested
+    ;; makes mermaid parse the wrong text and draw a syntax-error graphic).
+    ;; mermaid.js is loaded from the jsDelivr CDN, so a rendered preview needs
+    ;; network; blocks still show as source text offline. Pinned to major 11.
+    "<script type=\"module\">"
+    "import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';"
+    "document.querySelectorAll('pre.mermaid > code').forEach("
+    "function(c){c.parentElement.textContent=c.textContent;});"
+    "mermaid.initialize({startOnLoad:false});"
+    "mermaid.run({querySelector:'pre.mermaid'});"
+    "</script>")))
 
 (provide 'markup)
 ;;; markup.el ends here
