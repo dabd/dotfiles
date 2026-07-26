@@ -78,10 +78,27 @@ this task accomplish".
 durable sources, not panes:
 
 - Transcripts: for each task window, locate Claude/Codex session logs touched
-  since the last-brief timestamp; fan out one subagent per task to answer:
-  what was attempted, what completed, what is blocked and why.
+  since the last-brief timestamp; fan out one subagent per task.
 - Git: `git log --since` across the configured work tree, plus `gh` for PRs
   opened, merged, and reviewed. Ground truth for what shipped.
+
+Analysis depth per session is bounded and fixed:
+
+1. Skeleton extraction first. A raw session transcript includes every tool
+   result and file dump and can run to hundreds of thousands of tokens. The
+   subagent never reads it whole; a `jq` pass extracts the narrative
+   skeleton: user prompts, assistant text messages, timestamps, and tool-call
+   names, dropping tool outputs and file contents. Typically a few hundred
+   lines per session.
+2. Three questions only: what was attempted, what completed, what is blocked
+   and why. "Completed" is cross-checked against git evidence; an agent that
+   claims done with no commit is reported as "claims done, nothing
+   committed".
+3. No correctness judgment. The brief reports where each task stands, never
+   whether the work is right; code review stays with the user.
+4. Escape hatch: the on-demand deep dive (sweep mode's ad-hoc path) reads
+   the transcript with tool outputs included for a flagged window, on
+   request only.
 - Ticket system (optional): where window names contain ticket keys, pull
   current status via the locally configured ticket CLI if one exists.
 
