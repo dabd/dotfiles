@@ -29,3 +29,6 @@ enabled = true
 
 [hooks.state."/Users/dario.abdulrehman/.codex-personal/hooks.json:pre_tool_use:0:0"]
 trusted_hash = "sha256:4de29a3e4d28fc9506e1d4367024059523c5dbd7dfd68ce1fce08d5e4f5034b1"
+
+[hooks.state."/Users/dario.abdulrehman/.codex-personal/hooks.json:session_start:0:0"]
+trusted_hash = "sha256:a5eb1fad4df7f2ed9d76e480b8c773bd41e5f570fa05a2608ec6f5e5efafaab6"
