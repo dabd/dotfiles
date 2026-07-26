@@ -1,0 +1,29 @@
+# font
+font-family = JetBrains Mono
+font-size = 12
+
+# theme - auto light/dark
+theme = light:Catppuccin Latte,dark:Catppuccin Mocha
+
+# window
+window-padding-x = 12
+window-padding-y = 12
+macos-titlebar-style = tabs
+
+# scrollback - long agent outputs
+scrollback-limit = 10000000
+
+# safety
+clipboard-paste-protection = true
+
+# shift+drag selects in Ghostty (bypasses tmux mouse) and copies to BOTH the
+# selection and system clipboard, so Cmd+V works without a separate Cmd+C.
+# (default `true` copies to the selection clipboard only.)
+mouse-shift-capture = never
+copy-on-select = clipboard
+
+# Shift+Enter -> bare line feed (Ctrl+J), which Claude Code treats as
+# newline-in-prompt with no keyboard protocol needed. This lets tmux keep
+# extended-keys OFF (required for clean multi-line paste) while Shift+Enter
+# still inserts a newline instead of submitting.
+keybind = shift+enter=text:\n

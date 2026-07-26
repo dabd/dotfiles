@@ -38,4 +38,9 @@
     source = ./tmux/scripts;
     recursive = true;
   };
+
+  xdg.configFile."ghostty" = {
+    source = ./ghostty;
+    recursive = true;
+  };
 }
