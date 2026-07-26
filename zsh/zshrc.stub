@@ -1,0 +1,5 @@
+# ~/.zshrc is a stub on purpose: installers append to this file. Real config:
+#   core: ~/.config/zsh/zshrc.core  (dotfiles repo, home-manager symlink)
+#   work: ~/.zshrc.work             (work overlay repo, present on work machines only)
+[ -f "$HOME/.config/zsh/zshrc.core" ] && source "$HOME/.config/zsh/zshrc.core"
+[ -f "$HOME/.zshrc.work" ] && source "$HOME/.zshrc.work"

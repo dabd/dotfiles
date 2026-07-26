@@ -43,4 +43,6 @@
     source = ./ghostty;
     recursive = true;
   };
+
+  xdg.configFile."zsh/zshrc.core".source = ./zsh/zshrc.core;
 }
