@@ -18,5 +18,26 @@ check codex-working.txt     codex  working
 check shell-prompt.txt      shell  exited
 check garbage.txt           claude unknown
 
+# An unreadable pane file must classify as unknown, silently, exit 0.
+check_unreadable() {
+  errf=$(mktemp "${TMPDIR:-/tmp}/agent-supervisor-test.XXXXXX")
+  got=$(bash "$SWEEP" --classify /nonexistent/path claude 2>"$errf")
+  rc=$?
+  err=$(cat "$errf"); rm -f "$errf"
+  if [ "$got" = unknown ] && [ "$rc" -eq 0 ] && [ -z "$err" ]; then pass=$((pass+1));
+  else echo "FAIL: unreadable expected unknown/rc0/no-stderr got '$got'/rc$rc/stderr '$err'"; fail=$((fail+1)); fi
+}
+
+# Sourcing must not exit the caller, even under set -euo pipefail.
+check_sourceable() {
+  got=$(bash -c "set -euo pipefail; . '$SWEEP'; classify_pane fixtures/claude-idle.txt claude; echo sourced-ok")
+  if [ "$got" = "idle
+sourced-ok" ]; then pass=$((pass+1));
+  else echo "FAIL: sourcing expected 'idle/sourced-ok' got '$got'"; fail=$((fail+1)); fi
+}
+
+check_unreadable
+check_sourceable
+
 echo "classify: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

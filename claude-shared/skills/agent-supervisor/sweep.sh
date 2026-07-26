@@ -11,6 +11,9 @@ STUCK_SWEEPS=3
 # classify_pane <file> <kind> -> waiting_permission|working|idle|exited|unknown
 classify_pane() {
   local f=$1 kind=$2 tail40
+  # No readable capture means no evidence: report unknown rather than letting
+  # grep complain on stderr or inferring a state from an empty read.
+  [ -r "$f" ] || { echo unknown; return; }
   tail40=$(grep -v '^[[:space:]]*$' "$f" | tail -40 || true)
   if printf '%s\n' "$tail40" | grep -qiE 'do you want to proceed|allow command\?|don.t ask again|tell (claude|codex) what to do'; then
     echo waiting_permission; return
@@ -35,10 +38,14 @@ kind_from_command() {
   esac
 }
 
-if [ "${1:-}" = "--classify" ]; then
-  classify_pane "$2" "$3"
-  exit 0
-fi
+# CLI dispatch only when executed directly, so that sourcing this file to reuse
+# the functions above cannot exit the calling shell.
+if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
+  if [ "${1:-}" = "--classify" ]; then
+    classify_pane "$2" "$3"
+    exit 0
+  fi
 
-echo "sweep mode not implemented yet" >&2
-exit 64
+  echo "sweep mode not implemented yet" >&2
+  exit 64
+fi
