@@ -21,6 +21,7 @@ command -v nix >/dev/null 2>&1 || {
 mkdir -p "$HOME/tools"
 [ -d "$HOME/tools/save-our-sessions" ] || git clone git@github.com:dabd/save-our-sessions.git "$HOME/tools/save-our-sessions"
 [ -d "$HOME/tools/claude-setup" ] || git clone git@github.com:dabd/claude-setup.git "$HOME/tools/claude-setup"
+[ -d "$HOME/tools/tacit" ] || git clone git@github.com:dabd/tacit.git "$HOME/tools/tacit"
 
 # oh-my-zsh + the two custom plugins zshrc.core expects.
 [ -d "$HOME/.oh-my-zsh" ] || sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
