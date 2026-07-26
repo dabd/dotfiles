@@ -1,15 +1,64 @@
 # dotfiles
 
-Vanilla Emacs + tooling, managed by Nix home-manager. Reproducible across
-machines (macOS and, in principle, Linux). The Emacs config is plain Elisp, so
-it works even cloned without Nix. Nix pins the binary, language servers, and CLI
-tools for reproducibility.
+Personal machine setup, managed by Nix home-manager: Emacs, tmux, ghostty,
+zsh, git, and Claude/Codex agent config. Reproducible across machines (macOS
+and, in principle, Linux). The Emacs config is plain Elisp, so it works even
+cloned without Nix. Nix pins the binaries, language servers, and CLI tools.
+
+## What this repo manages
+
+- `emacs/` - the full Emacs config (plain Elisp, symlinked to `~/.config/emacs`)
+- `tmux/` - tmux config + MRU pickers (phase 1: files managed; the running
+  server may still be an older binary until its own cutover)
+- `ghostty/` - terminal config
+- `zsh/` - `zshrc.core` (all shell config) + `zshrc.stub` (template for `~/.zshrc`)
+- `git/` - `gitconfig-core` (identity, aliases), `gitconfig-dirs` (personal
+  directory pins), `gitconfig-personal`, and `gitconfig.stub`
+- `claude/`, `claude-shared/`, `codex/` - personal agent-CLI config, tracked as
+  writable out-of-store symlinks (the CLIs rewrite these at runtime; changes
+  show up as git diffs here)
+- `bootstrap.sh` - fresh-machine setup
+- `home.nix` - packages plus all the symlink wiring
+
+### The stub pattern
+
+`~/.zshrc` and `~/.gitconfig` are NOT symlinks: installers and tools append to
+them, and a read-only store symlink would break that. Each is a tiny writable
+stub that sources/includes the tracked file, then an optional work-overlay file
+(`~/.zshrc.work`, `~/.gitconfig-work`) last, so a work machine's overlay wins.
+Work machines get those overlay files from a separate private repo with its own
+`install.sh`; personal machines simply don't have them.
+
+Portability caveat: some tracked agent config (`claude/settings.json`,
+`codex/hooks.json`) contains machine-absolute home paths; edit those when
+setting up a machine with a different username.
+
+## Bootstrap a new machine
+
+Requires Nix (with flakes) installed and permitted on the target machine.
+
+```bash
+git clone https://github.com/dabd/dotfiles ~/dotfiles
+~/dotfiles/bootstrap.sh
+```
+
+`bootstrap.sh` creates the `~/.zshrc` / `~/.gitconfig` stubs (only if absent),
+clones satellite tools to `~/tools`, installs oh-my-zsh and its plugins, and
+runs the home-manager switch. Idempotent; safe to re-run. The manual
+equivalent of just the switch:
+
+```bash
+cd ~/dotfiles
+nix run home-manager/master -- switch --flake .#default --impure
+```
 
 ## Layout
 
 ```
 flake.nix / flake.lock   pinned inputs: nixpkgs, home-manager, emacs-overlay
-home.nix                 packages and the config symlink
+home.nix                 packages and the config symlinks
+bootstrap.sh             fresh-machine setup
+zsh/ git/ tmux/ ghostty/ claude/ claude-shared/ codex/   (see above)
 emacs/
   early-init.el          pre-frame tuning + Nix exec-path for GUI .app launches
   init.el                elpaca bootstrap + module loader
@@ -21,16 +70,6 @@ emacs/
     lsp.el               eglot + dape (Scala / Metals)
     git.el               magit + forge (github.com; enterprise hosts loaded locally)
     llm.el               gptel; backend chosen per-machine (work: AWS Bedrock)
-```
-
-## Bootstrap a new machine
-
-Requires Nix (with flakes) installed and permitted on the target machine.
-
-```bash
-git clone https://github.com/dabd/dotfiles ~/dotfiles
-cd ~/dotfiles
-nix run home-manager/master -- switch --flake .#default --impure
 ```
 
 > The flake ships one machine-agnostic entry, `default`. It reads your username
@@ -54,7 +93,7 @@ open -a ~/.nix-profile/Applications/Emacs.app   # GUI (primary use)
 emacs -nw                                       # quick terminal Emacs
 ```
 
-Convenience shell functions (add to `~/.zshrc`, which is machine-local):
+Convenience shell functions (`ec` / `et`, defined in `zsh/zshrc.core`):
 
 ```bash
 ec() { open -a "$HOME/.nix-profile/Applications/Emacs.app" "$@"; }  # GUI, optional files
@@ -152,6 +191,9 @@ install the Homebrew cask (`brew install --cask emacs-app`) and put
 
 ## Work / personal git
 
-`~/.gitconfig` (machine-local, not in this repo) routes identity by directory via
-`includeIf`. Magit inherits this by shelling out to `git`, so Emacs needs no
-identity config. Enterprise hosts and work emails stay out of this repo.
+`~/.gitconfig` is the stub described above: it includes the tracked
+`git/gitconfig-core` (personal identity, aliases), then an optional
+`~/.gitconfig-work` overlay, then `git/gitconfig-dirs` (personal-directory
+`includeIf` pins, loaded last so they win in personal dirs). Magit inherits all
+of this by shelling out to `git`, so Emacs needs no identity config. Enterprise
+hosts and work emails stay out of this repo, in the work overlay.
