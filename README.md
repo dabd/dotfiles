@@ -29,6 +29,17 @@ stub that sources/includes the tracked file, then an optional work-overlay file
 Work machines get those overlay files from a separate private repo with its own
 `install.sh`; personal machines simply don't have them.
 
+### Shared agent policy
+
+Agent policy used by every profile, work and personal, lives in this repo:
+`claude-shared/prose-rules.md` (each Claude profile's CLAUDE.md includes it)
+and `codex/skills/` (each codex profile symlinks it). The rule: this repo
+holds shared, personal-safe policy; the work overlay holds work-only config.
+The overlay may symlink into this repo (bootstrap pins it at `~/dotfiles`),
+never the reverse. Pick the mechanism deliberately: an `@`-include when a
+profile wraps shared content with its own additions, a symlink when the file
+must be identical everywhere.
+
 Portability caveat: some tracked agent config (`claude/settings.json`,
 `codex/hooks.json`) contains machine-absolute home paths; edit those when
 setting up a machine with a different username.
