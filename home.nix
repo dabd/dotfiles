@@ -19,12 +19,23 @@
     # projects.el adds that to treesit-extra-load-path. Reproducible: no
     # per-machine runtime grammar installs / prompts (replaces that backlog item).
     emacs.pkgs.treesit-grammars.with-all-grammars
+    tmux            # was the Homebrew binary; Nix-pinned (3.6a). Retire Homebrew tmux in Phase 2.
+    fzf             # required by the tmux MRU pickers; also revives the tmux-fzf plugin (inert until now)
   ];
 
   # Symlink the plain-Elisp config into place. Nix never generates this;
   # it points ~/.config/emacs at the repo's emacs/ tree.
   xdg.configFile."emacs" = {
     source = ./emacs;
+    recursive = true;
+  };
+
+  # Symlink the tmux config + pickers. Nix never generates these; same pattern
+  # as emacs/ above. Plugins stay TPM-managed (cloned at runtime), the analog
+  # of elpaca for Elisp.
+  xdg.configFile."tmux/tmux.conf".source = ./tmux/tmux.conf;
+  xdg.configFile."tmux/scripts" = {
+    source = ./tmux/scripts;
     recursive = true;
   };
 }
