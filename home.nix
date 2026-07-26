@@ -48,5 +48,20 @@
 
   xdg.configFile."git/gitconfig-core".source = ./git/gitconfig-core;
   xdg.configFile."git/gitconfig-dirs".source = ./git/gitconfig-dirs;
-  home.file.".gitconfig-personal".source = ./git/gitconfig-personal;
+
+  # Agent CLIs rewrite these at runtime (model saves, hook edits), so they must
+  # stay writable: out-of-store symlinks into the repo working copy. Requires
+  # the repo at ~/dotfiles and --impure (both already required).
+  home.file = let
+    repoFile = path: config.lib.file.mkOutOfStoreSymlink "${homeDirectory}/dotfiles/${path}";
+  in {
+    ".claude-personal/CLAUDE.md".source = repoFile "claude/CLAUDE.md";
+    ".claude-personal/settings.json".source = repoFile "claude/settings.json";
+    ".claude-personal/statusline.sh".source = repoFile "claude/statusline.sh";
+    ".claude-personal/hooks".source = repoFile "claude/hooks";
+    ".claude-shared/prose-rules.md".source = repoFile "claude-shared/prose-rules.md";
+    ".codex-personal/config.toml".source = repoFile "codex/config.toml";
+    ".codex-personal/hooks.json".source = repoFile "codex/hooks.json";
+    ".gitconfig-personal".source = ./git/gitconfig-personal;
+  };
 }

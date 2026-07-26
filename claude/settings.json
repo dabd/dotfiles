@@ -1,0 +1,83 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(*)",
+      "Read",
+      "Glob",
+      "Grep",
+      "WebFetch"
+    ]
+  },
+  "model": "claude-fable-5[1m]",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CC_SAFETY_NET_STRICT=1 CC_SAFETY_NET_PARANOID_RM=1 \"/Users/dario.abdulrehman/.nvm/versions/node/v24.0.2/bin/node\" \"/Users/dario.abdulrehman/.local/share/cc-safety-net/v1.0.6/node_modules/cc-safety-net/dist/bin/cc-safety-net.js\" hook --claude-code"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/dario.abdulrehman/.claude-personal/hooks/guard-gaps.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/dario.abdulrehman/.claude-personal/hooks/normalize-unicode.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/dario.abdulrehman/.claude-personal/hooks/guard-sensitive-files.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude-personal/statusline.sh"
+  },
+  "enabledPlugins": {
+    "codex@openai-codex": true,
+    "prose@tacit": true,
+    "superpowers@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "tmux-session-recovery@save-our-sessions": true
+  },
+  "extraKnownMarketplaces": {
+    "openai-codex": {
+      "source": {
+        "source": "github",
+        "repo": "openai/codex-plugin-cc"
+      }
+    },
+    "tacit": {
+      "source": {
+        "source": "directory",
+        "path": "/Users/dario.abdulrehman/projects/mystuff/tacit"
+      }
+    },
+    "save-our-sessions": {
+      "source": {
+        "source": "directory",
+        "path": "/Users/dario.abdulrehman/projects/mystuff/save-our-sessions"
+      }
+    }
+  },
+  "effortLevel": "high",
+  "tui": "fullscreen",
+  "skipWorkflowUsageWarning": true,
+  "theme": "dark",
+  "agentPushNotifEnabled": true
+}
