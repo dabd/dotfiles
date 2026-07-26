@@ -1,0 +1,67 @@
+[user]
+	name = Dario Abdulrehman
+	email = dario.rehman@gmail.com
+[pull]
+	rebase = false
+[alias]
+  co=checkout
+  ci=commit
+  st=status
+  br=branch
+  hist=log --pretty=format:"%h %ad | %s%d [%an]" --graph --date=short
+  type=cat-file -t
+  dump=cat-file -p
+  ap=add --patch
+  # Merge from main/master only
+  pullmerge = "!f() { \
+    RED='\\033[0;31m'; GREEN='\\033[0;32m'; YELLOW='\\033[1;33m'; NC='\\033[0m'; \
+    printf \"${YELLOW}Fetching updates...${NC}\\n\" && \
+    git fetch || { printf \"${RED}Fetch failed${NC}\\n\"; return 1; } && \
+    default_branch=$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@') && \
+    printf \"${YELLOW}Merging from origin/$default_branch...${NC}\\n\" && \
+    git merge origin/$default_branch || { printf \"${RED}Merge failed - resolve conflicts${NC}\\n\"; return 1; } && \
+    printf \"${GREEN}Merge complete!${NC}\\n\"; \
+  }; f"
+  mm = "!git pullmerge"
+
+  # Rebase onto main/master only
+  pullrebase = "!f() { \
+    RED='\\033[0;31m'; GREEN='\\033[0;32m'; YELLOW='\\033[1;33m'; NC='\\033[0m'; \
+    printf \"${YELLOW}Fetching updates...${NC}\\n\" && \
+    git fetch || { printf \"${RED}Fetch failed${NC}\\n\"; return 1; } && \
+    default_branch=$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@') && \
+    printf \"${YELLOW}Rebasing onto origin/$default_branch...${NC}\\n\" && \
+    git rebase origin/$default_branch || { printf \"${RED}Rebase failed - resolve conflicts${NC}\\n\"; return 1; } && \
+    printf \"${GREEN}Rebase complete!${NC}\\n\"; \
+  }; f"
+  rm = "!git pullrebase"
+
+  # Full sync with merge
+  syncmerge = "!f() { \
+    RED='\\033[0;31m'; GREEN='\\033[0;32m'; YELLOW='\\033[1;33m'; NC='\\033[0m'; \
+    printf \"${YELLOW}Fetching updates...${NC}\\n\" && \
+    git fetch || { printf \"${RED}Fetch failed${NC}\\n\"; return 1; } && \
+    current_branch=$(git rev-parse --abbrev-ref HEAD) && \
+    printf \"${YELLOW}Pulling from origin/$current_branch...${NC}\\n\" && \
+    git pull || { printf \"${RED}Pull failed - fix conflicts before continuing${NC}\\n\"; return 1; } && \
+    default_branch=$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@') && \
+    printf \"${YELLOW}Merging from $default_branch...${NC}\\n\" && \
+    git merge origin/$default_branch || { printf \"${RED}Merge failed - resolve conflicts${NC}\\n\"; return 1; } && \
+    printf \"${GREEN}Sync complete!${NC}\\n\"; \
+  }; f"
+  sm = "!git syncmerge"
+
+  # Full sync with rebase
+  syncrebase = "!f() { \
+    RED='\\033[0;31m'; GREEN='\\033[0;32m'; YELLOW='\\033[1;33m'; NC='\\033[0m'; \
+    printf \"${YELLOW}Fetching updates...${NC}\\n\" && \
+    git fetch || { printf \"${RED}Fetch failed${NC}\\n\"; return 1; } && \
+    current_branch=$(git rev-parse --abbrev-ref HEAD) && \
+    printf \"${YELLOW}Pulling from origin/$current_branch with rebase...${NC}\\n\" && \
+    git pull --rebase || { printf \"${RED}Pull failed - fix conflicts before continuing${NC}\\n\"; return 1; } && \
+    default_branch=$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@') && \
+    printf \"${YELLOW}Rebasing onto $default_branch...${NC}\\n\" && \
+    git rebase origin/$default_branch || { printf \"${RED}Rebase failed - resolve conflicts${NC}\\n\"; return 1; } && \
+    printf \"${GREEN}Sync complete!${NC}\\n\"; \
+  }; f"
+  sr = "!git syncrebase"

@@ -1,0 +1,7 @@
+# ~/.gitconfig is a stub on purpose: tools write here. Real config is included.
+# Order matters: core defaults, then work overlay (its identity wins on work
+# machines), then personal directory pins (they win in personal dirs).
+[include]
+    path = ~/.config/git/gitconfig-core
+    path = ~/.gitconfig-work
+    path = ~/.config/git/gitconfig-dirs

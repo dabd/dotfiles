@@ -1,0 +1,10 @@
+# Personal-directory identity pins. Loaded LAST by the ~/.gitconfig stub so
+# they beat a work overlay's default identity.
+[includeIf "gitdir:~/projects/mystuff/"]
+    path = ~/.gitconfig-personal
+[includeIf "gitdir:/private/tmp/mystuff/"]
+    path = ~/.gitconfig-personal
+[includeIf "gitdir:~/dotfiles/"]
+    path = ~/.gitconfig-personal
+[includeIf "gitdir:~/tools/"]
+    path = ~/.gitconfig-personal

@@ -45,4 +45,8 @@
   };
 
   xdg.configFile."zsh/zshrc.core".source = ./zsh/zshrc.core;
+
+  xdg.configFile."git/gitconfig-core".source = ./git/gitconfig-core;
+  xdg.configFile."git/gitconfig-dirs".source = ./git/gitconfig-dirs;
+  home.file.".gitconfig-personal".source = ./git/gitconfig-personal;
 }
