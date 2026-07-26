@@ -71,7 +71,7 @@
     "save-our-sessions": {
       "source": {
         "source": "directory",
-        "path": "/Users/dario.abdulrehman/projects/mystuff/save-our-sessions"
+        "path": "/Users/dario.abdulrehman/tools/save-our-sessions"
       }
     }
   },
