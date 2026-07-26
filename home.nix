@@ -62,6 +62,7 @@
     ".claude-shared/prose-rules.md".source = repoFile "claude-shared/prose-rules.md";
     ".codex-personal/config.toml".source = repoFile "codex/config.toml";
     ".codex-personal/hooks.json".source = repoFile "codex/hooks.json";
+    ".codex-personal/skills".source = repoFile "codex/skills";
     ".gitconfig-personal".source = ./git/gitconfig-personal;
   };
 }
