@@ -1,0 +1,4 @@
+  codex wants to run: git push origin main
+
+  Allow command?
+  ▌ Yes  ▌ No
