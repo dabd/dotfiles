@@ -141,20 +141,29 @@ on its own. Then:
    and what needs a decision, ordered by urgency, followed by step 5's dormant
    section. A standup draft: yesterday, today,
    blockers, routed through the prose skill. Both are drafts for the user. Post
-   nothing anywhere.
+   nothing anywhere. End the brief with a one-line cost footer: total the token
+   usage each fan-out dispatch reported, so every brief carries its own price.
 9. Write the new timestamp to `last-brief`, only after delivering the brief.
 
 ## 5. Finding a window's transcript
 
-Used by sections 3 and 4. Take the window's `pane_current_path`, then prefer the
-most recently modified match from:
+Used by sections 3 and 4. Take the window's `pane_current_path`:
 
-- Claude: the project slug is that path with every `/` replaced by `-`. Prefix
-  match it against the directory names under `~/.claude*/projects/`.
+- Claude: the project slug is that path with every `/` and `.` replaced by `-`.
+  Prefix match it against the directory names under `~/.claude*/projects/`.
 - Codex: grep the `session_meta` lines under `~/.codex*/sessions/` for a
   matching `cwd`.
 
 Both globs cover every profile directory, alternate-backend profiles included.
+
+A path match is a candidate set, not an identification: many windows often
+share one repo root, so a single slug directory can hold dozens of sessions.
+Disambiguate by content: take the candidates modified in the relevant span,
+grep them for distinctive tokens from the window name and from the window's
+pane tail, and pick the one whose matches are recent and consistent. When no
+candidate matches confidently, report "transcript ambiguous" for that window
+instead of narrating another session's work - a misattributed brief is worse
+than a gap.
 
 ## 6. Limits
 
