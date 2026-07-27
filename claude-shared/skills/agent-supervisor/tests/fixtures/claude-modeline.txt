@@ -1,0 +1,2 @@
+some earlier output text
+  ⏵⏵ auto mode on (shift+tab to cycle)

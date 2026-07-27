@@ -45,6 +45,9 @@ check "ticker unchanged counter"       '.sessions[0].windows[2].unchanged_sweeps
 check "second sweep unchanged" '.sessions[0].windows[0].changed' false "$r2"
 check "unchanged counter"      '.sessions[0].windows[0].unchanged_sweeps' 1 "$r2"
 check "quiet unchanged working tail" '.sessions[0].windows[0].tail | length' 0 "$r2"
+# The quiet rule silences unchanged working/idle only: a window still sitting at
+# a permission prompt keeps its tail, so the report can say what it is asking for.
+check "unchanged permission keeps tail" '.sessions[0].windows[1].tail | length > 0' true "$r2"
 
 r3=$(bash "$SWEEP" "$SESSION"); r4=$(bash "$SWEEP" "$SESSION")
 check "stuck after 3 unchanged" '.sessions[0].windows[0].possibly_stuck' true "$r4"

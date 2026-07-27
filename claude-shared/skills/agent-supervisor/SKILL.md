@@ -50,6 +50,13 @@ Report deltas only, one line per notable window, naming session, index, name:
   live in `classify_pane` in `sweep.sh`, and an `unknown` on a live agent pane
   is a signal to tune them, not something to explain away.
 
+After a tmux restore: a sweep run right after a tmux server restart or a session
+recovery often shows several `exited` windows at once. A window whose name reads
+like a task rather than a shell name (`zsh`, `bash`, and the like) but whose
+state is `exited` is most likely an agent session lost in the restore, not
+finished work. List those separately, under "possibly lost in restore", and
+suggest the user resume them with whatever session-recovery tooling they use.
+
 Say nothing about unchanged `working` or `idle` windows. If nothing is notable,
 say so in one line and no more. Then sweep again 15 to 20 minutes later, on a
 timer the session already has (a recurring-prompt mechanism, or a backgrounded
@@ -89,13 +96,14 @@ it is absent, use 24 hours ago. Then:
    the repos. A split window yields one line per pane, so group by index and
    treat distinct paths under one index as that task's repos.
 2. Locate transcripts modified since the timestamp. Claude: under
-   `~/.claude/projects/*/` and `~/.claude-personal/projects/*/`, filtered on
-   mtime. Codex: under `~/.codex/sessions/` and `~/.codex-personal/sessions/`,
-   matching `session_meta.cwd` to a pane path.
+   `~/.claude*/projects/*/`, filtered on mtime. Codex: under
+   `~/.codex*/sessions/`, matching `session_meta.cwd` to a pane path. The
+   globs cover every profile directory, alternate-backend profiles included.
 3. Fan out one subagent per task window, briefed with the window name, the
    `skeleton.sh` output for its transcripts, and
-   `git log --since=<timestamp> --oneline` for its repo. Each answers exactly
-   three questions: what was attempted, what completed, what is blocked and why.
+   `git log --since=<timestamp> --oneline` for each of its repos. Each answers
+   exactly three questions: what was attempted, what completed, what is blocked
+   and why.
    Cross-check "completed" against git and report "claims done, nothing
    committed" when they disagree. No correctness judgment, no code review.
 4. Gather PR activity for the repos found in the pane paths, with
@@ -114,10 +122,11 @@ Used by sections 3 and 4. Take the window's `pane_current_path`, then prefer the
 most recently modified match from:
 
 - Claude: the project slug is that path with every `/` replaced by `-`. Prefix
-  match it against the directory names under `~/.claude/projects/` and
-  `~/.claude-personal/projects/`.
-- Codex: grep the `session_meta` lines under `~/.codex/sessions/` and
-  `~/.codex-personal/sessions/` for a matching `cwd`.
+  match it against the directory names under `~/.claude*/projects/`.
+- Codex: grep the `session_meta` lines under `~/.codex*/sessions/` for a
+  matching `cwd`.
+
+Both globs cover every profile directory, alternate-backend profiles included.
 
 ## 6. Limits
 

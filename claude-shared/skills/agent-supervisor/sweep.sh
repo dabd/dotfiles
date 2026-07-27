@@ -141,7 +141,11 @@ if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
       case "$state" in waiting_permission|exited|unknown) want_tail=true ;; esac
       [ "$changed" = true ] && want_tail=true
       [ "$stuck" = true ] && want_tail=true
-      # quiet rule: unchanged working/idle windows stay silent
+      # quiet rule: unchanged working/idle windows stay silent.
+      # Redundant by construction today: with changed and stuck both false, the
+      # only remaining way want_tail is true is a waiting_permission, exited, or
+      # unknown state, and those are disjoint from working and idle. Kept as a
+      # guard so a future want_tail condition cannot leak a tail past the rule.
       if [ "$changed" = false ] && [ "$stuck" = false ]; then
         case "$state" in working|idle) want_tail=false ;; esac
       fi

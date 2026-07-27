@@ -36,6 +36,9 @@ check codex-idle-real.txt   codex  idle
 check claude-resume-dialog.txt claude waiting_permission
 
 check_kind claude-idle-real.txt    2.1.220 claude
+# Mode line alone, with no context meter and no confirm prompt: one marker is
+# enough to name the agent.
+check_kind claude-modeline.txt     2.1.220 claude
 check_kind claude-resume-dialog.txt 2.1.220 claude
 check_kind codex-idle-real.txt  node    codex
 check_kind shell-prompt.txt     zsh     shell
