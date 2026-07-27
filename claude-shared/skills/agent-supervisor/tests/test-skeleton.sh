@@ -18,6 +18,13 @@ expect "claude assistant line" "ASSISTANT: Found it" "$c"
 expect "claude tool name"      "TOOL: Bash" "$c"
 absent "claude tool output"    "HUGE TOOL OUTPUT" "$c"
 
+# interleaved text/tool_use blocks in one turn keep their original order
+order=$(printf '%s\n' "$c" \
+  | grep -oE '(ASSISTANT: Interleave (one|two)|TOOL: (Read|Write))' | tr '\n' ',')
+want="ASSISTANT: Interleave one,TOOL: Read,ASSISTANT: Interleave two,TOOL: Write,"
+if [ "$order" = "$want" ]; then pass=$((pass+1));
+else echo "FAIL: claude interleaved order (got: $order)"; fail=$((fail+1)); fi
+
 x=$(bash "$SK" fixtures/codex-transcript.jsonl)
 expect "codex user line"      "USER: bump the dependency" "$x"
 expect "codex assistant line" "ASSISTANT: Dependency bumped" "$x"

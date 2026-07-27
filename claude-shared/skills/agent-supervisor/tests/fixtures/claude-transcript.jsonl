@@ -3,3 +3,4 @@
 {"type":"assistant","timestamp":"2026-07-27T08:00:05.000Z","message":{"role":"assistant","content":[{"type":"text","text":"Looking at the test now."},{"type":"tool_use","name":"Bash","input":{"command":"grep -r flaky ."}}]}}
 {"type":"user","timestamp":"2026-07-27T08:00:06.000Z","message":{"role":"user","content":[{"type":"tool_result","content":"HUGE TOOL OUTPUT THAT MUST NOT APPEAR"}]}}
 {"type":"assistant","timestamp":"2026-07-27T08:00:10.000Z","message":{"role":"assistant","content":[{"type":"text","text":"Found it: the test races on a shared temp dir. Fixing."}]}}
+{"type":"assistant","timestamp":"2026-07-27T08:00:20.000Z","message":{"role":"assistant","content":[{"type":"text","text":"Interleave one."},{"type":"tool_use","name":"Read","input":{"file_path":"/a"}},{"type":"text","text":"Interleave two."},{"type":"tool_use","name":"Write","input":{"file_path":"/b"}}]}}

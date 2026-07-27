@@ -32,10 +32,11 @@ else
          | select(length > 0)
          | "[\($ts)] USER: \(.[0:500])")
       else
-        ((.message.content[]? | select(.type == "text")
-          | "[\($ts)] ASSISTANT: \(.text[0:500])"),
-         (.message.content[]? | select(.type == "tool_use")
-          | "[\($ts)] TOOL: \(.name)"))
+        # single ordered pass, so narration and tool calls stay interleaved
+        (.message.content[]?
+         | if .type == "text" then "[\($ts)] ASSISTANT: \(.text[0:500])"
+           elif .type == "tool_use" then "[\($ts)] TOOL: \(.name)"
+           else empty end)
       end
   ' "$f"
 fi
