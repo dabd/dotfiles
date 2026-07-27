@@ -28,6 +28,17 @@ classify_pane() {
   echo unknown
 }
 
+# normalize_for_diff <file> -> the file's content minus volatile status lines.
+# A live agent status line carries a ticking elapsed timer and token count
+# ("esc to interrupt / 42s / 12.1k tokens"), so a byte-exact compare of two
+# captures always differs and no window would ever look unchanged. Dropping
+# those lines makes "only the spinner moved" count as unchanged, which is what
+# the stuck detector and the quiet rule need. The stored snapshot stays raw:
+# classification and the reported tail still see the real pane.
+normalize_for_diff() {
+  grep -viE 'esc to interrupt|interrupt.*esc' "$1" || true
+}
+
 # kind_from_command <pane_current_command> -> claude|codex|shell|other
 kind_from_command() {
   case "$1" in
@@ -49,11 +60,13 @@ if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
   command -v tmux >/dev/null || { echo "tmux not found" >&2; exit 2; }
   tmux info >/dev/null 2>&1 || { echo "tmux server not running" >&2; exit 2; }
 
+  # Session names may contain spaces, so the list is newline-separated
+  # throughout and never word-split.
   if [ $# -gt 0 ]; then
-    sessions="$*"
-    for s in $sessions; do
+    for s in "$@"; do
       tmux has-session -t "=$s" 2>/dev/null || { echo "no such session: $s" >&2; exit 2; }
     done
+    sessions=$(printf '%s\n' "$@")
   else
     sessions=$(tmux list-sessions -F '#{session_name}')
   fi
@@ -61,7 +74,8 @@ if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
   now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
   session_jsons=""
 
-  for s in $sessions; do
+  while IFS= read -r s; do
+    [ -n "$s" ] || continue
     sdir="$STATE_ROOT/$s"
     mkdir -p "$sdir"
     window_jsons=""
@@ -75,7 +89,9 @@ if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
       tmux capture-pane -p -t "=$s:$idx" -S "-$TAIL_LINES" > "$new" 2>/dev/null || : > "$new"
 
       changed=true
-      if [ -f "$snap" ] && cmp -s "$snap" "$new"; then changed=false; fi
+      if [ -f "$snap" ] && cmp -s <(normalize_for_diff "$snap") <(normalize_for_diff "$new"); then
+        changed=false
+      fi
       if [ "$changed" = true ]; then
         echo 0 > "$cnt"
       else
@@ -125,7 +141,9 @@ EOF
 
     sj=$(printf '%s' "$window_jsons" | jq -s --arg session "$s" '{session:$session,windows:.}')
     session_jsons="$session_jsons$sj"
-  done
+  done <<SESSIONS
+$sessions
+SESSIONS
 
   printf '%s' "$session_jsons" | jq -s --arg now "$now" '{generated_at:$now,sessions:.}'
 fi
