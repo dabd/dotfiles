@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -u
+cd "$(dirname "$0")"
+SWEEP=../sweep.sh
+SESSION=agsup-test
+export AGENT_SUPERVISOR_STATE=$(mktemp -d)
+pass=0; fail=0
+check() { # desc jq-filter expected report
+  got=$(printf '%s' "$4" | jq -r "$2")
+  if [ "$got" = "$3" ]; then pass=$((pass+1));
+  else echo "FAIL: $1 expected [$3] got [$got]"; fail=$((fail+1)); fi
+}
+
+tmux kill-session -t "$SESSION" 2>/dev/null || true
+tmux new-session -d -s "$SESSION" -x 80 -y 24 -n win0 \
+  'printf "✳ Testing... (esc to interrupt · 1s)\n"; sleep 300'
+tmux new-window -t "$SESSION" -n win1 \
+  'printf "Do you want to proceed?\n❯ 1. Yes\n"; sleep 300'
+sleep 1
+
+r1=$(bash "$SWEEP" "$SESSION")
+check "win0 working"       '.sessions[0].windows[0].state' working "$r1"
+check "win1 permission"    '.sessions[0].windows[1].state' waiting_permission "$r1"
+check "first sweep changed" '.sessions[0].windows[0].changed' true "$r1"
+check "first sweep has tail" '.sessions[0].windows[0].tail | length > 0' true "$r1"
+check "session name"       '.sessions[0].session' "$SESSION" "$r1"
+
+r2=$(bash "$SWEEP" "$SESSION")
+check "second sweep unchanged" '.sessions[0].windows[0].changed' false "$r2"
+check "unchanged counter"      '.sessions[0].windows[0].unchanged_sweeps' 1 "$r2"
+check "quiet unchanged working tail" '.sessions[0].windows[0].tail | length' 0 "$r2"
+
+r3=$(bash "$SWEEP" "$SESSION"); r4=$(bash "$SWEEP" "$SESSION")
+check "stuck after 3 unchanged" '.sessions[0].windows[0].possibly_stuck' true "$r4"
+
+bash "$SWEEP" no-such-session >/dev/null 2>&1
+[ $? -eq 2 ] && pass=$((pass+1)) || { echo "FAIL: bad session exit code"; fail=$((fail+1)); }
+
+tmux kill-session -t "$SESSION" 2>/dev/null || true
+rm -rf "$AGENT_SUPERVISOR_STATE"
+echo "sweep: $pass passed, $fail failed"
+[ "$fail" -eq 0 ]
