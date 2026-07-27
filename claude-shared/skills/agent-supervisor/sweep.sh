@@ -22,7 +22,12 @@ classify_pane() {
     echo working; return
   fi
   if [ "$kind" = "shell" ]; then echo exited; return; fi
-  if printf '%s\n' "$tail40" | grep -qE '^╭|│ >|\? for shortcuts|⏎ send'; then
+  # Idle means the agent is showing its input chrome and waiting for a human.
+  # The first four patterns are the boxed prompt; the rest are the flat chrome
+  # real Claude Code and Codex panes show (bare prompt caret, context meter,
+  # mode line). The shell short-circuit above runs first on purpose, so a plain
+  # zsh prompt caret stays `exited` rather than looking like an idle agent.
+  if printf '%s\n' "$tail40" | grep -qE '^╭|│ >|\? for shortcuts|⏎ send|^❯[[:space:]]*$|% ctx ·|Context [0-9]+% used|^› |mode on.*(shift\+tab|← for agents)'; then
     echo idle; return
   fi
   echo unknown
@@ -40,13 +45,29 @@ normalize_for_diff() {
 }
 
 # kind_from_command <pane_current_command> -> claude|codex|shell|other
+# Fallback only, for panes whose content shows no agent chrome. `node` maps to
+# other, not claude: Codex CLI runs as node, so the command name proves nothing.
 kind_from_command() {
   case "$1" in
-    claude|node) echo claude ;;
-    codex)       echo codex ;;
+    claude) echo claude ;;
+    codex)  echo codex ;;
     zsh|bash|sh|fish) echo shell ;;
-    *)           echo other ;;
+    *)      echo other ;;
   esac
+}
+
+# detect_kind <file> <pane_current_command> -> claude|codex|shell|other
+# Content first, because pane_current_command lies about real agents: Claude Code
+# reports its own version string (e.g. 2.1.220, different every release) and
+# Codex CLI reports node. The pane chrome is the reliable signal; the command
+# name is only the fallback for panes with no chrome at all.
+detect_kind() {
+  local f=$1 cmd=$2
+  if [ -r "$f" ]; then
+    if grep -qiF -e '% ctx ·' -e 'shift+tab to cycle' "$f"; then echo claude; return; fi
+    if grep -qE 'Context [0-9]+% used|^› ' "$f"; then echo codex; return; fi
+  fi
+  kind_from_command "$cmd"
 }
 
 # CLI dispatch only when executed directly, so that sourcing this file to reuse
@@ -54,6 +75,11 @@ kind_from_command() {
 if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
   if [ "${1:-}" = "--classify" ]; then
     classify_pane "$2" "$3"
+    exit 0
+  fi
+
+  if [ "${1:-}" = "--detect-kind" ]; then
+    detect_kind "$2" "$3"
     exit 0
   fi
 
@@ -82,7 +108,6 @@ if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
 
     # one line per window: index<TAB>name<TAB>pane_current_command
     while IFS=$(printf '\t') read -r idx name cmd; do
-      kind=$(kind_from_command "$cmd")
       snap="$sdir/win-$idx.txt"
       cnt="$sdir/win-$idx.count"
       new=$(mktemp)
@@ -100,6 +125,9 @@ if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
       mv "$new" "$snap"
       unchanged=$(cat "$cnt")
 
+      # Detect the kind after the mv, so it reads this sweep's capture rather
+      # than the previous one (or nothing at all on the first sweep).
+      kind=$(detect_kind "$snap" "$cmd")
       state=$(classify_pane "$snap" "$kind")
       stuck=false
       [ "$state" = "working" ] && [ "$unchanged" -ge "$STUCK_SWEEPS" ] && stuck=true

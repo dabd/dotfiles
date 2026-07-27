@@ -1,0 +1,4 @@
+  Compile result:
+  [success] Total time: 3 s
+› Implement {feature}
+  ~/projects/example · gpt-high · Context 40% used

@@ -20,9 +20,16 @@ tmux new-window -t "$SESSION" -n win1 \
 # agent does: every capture differs byte for byte while nothing real moved.
 tmux new-window -t "$SESSION" -n win2 \
   'i=0; while :; do printf "\033[2J\033[H✳ Testing... (esc to interrupt · %ss)\n" $i; i=$((i+1)); sleep 1; done'
+# win3 renders real (sanitized) Claude Code idle chrome, so the sweep has to
+# reach agent=claude from content alone: pane_current_command here is `sleep`,
+# and for a real agent it would be a version string.
+tmux new-window -t "$SESSION" -n win3 -c "$PWD" \
+  'cat fixtures/claude-idle-real.txt; sleep 300'
 sleep 1
 
 r1=$(bash "$SWEEP" "$SESSION")
+check "chrome pane detected as claude" '.sessions[0].windows[3].agent' claude "$r1"
+check "chrome pane idle"               '.sessions[0].windows[3].state' idle "$r1"
 check "win0 working"       '.sessions[0].windows[0].state' working "$r1"
 check "win1 permission"    '.sessions[0].windows[1].state' waiting_permission "$r1"
 check "first sweep changed" '.sessions[0].windows[0].changed' true "$r1"
