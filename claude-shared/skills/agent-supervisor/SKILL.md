@@ -84,6 +84,12 @@ explicit request only.
 
 ## 4. Brief mode (argument `brief`)
 
+Before anything else, check for
+`~/.config/agent-supervisor/brief-supplement.md`. If it exists, read it and
+apply it: it may adjust the standup format, replace the ticket lookup with
+specific queries, and name repos or boards that always matter. Where it
+conflicts with the steps below, it wins. If it is absent, proceed as written.
+
 Read `~/.local/state/agent-supervisor/last-brief`, which holds epoch seconds. If
 it is absent, default to the start of the most recent day before today that has
 any transcript activity: take the newest per-day mtimes across
