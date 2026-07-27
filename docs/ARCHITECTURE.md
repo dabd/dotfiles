@@ -7,7 +7,7 @@ always wins by loading last.
 
 ```mermaid
 flowchart TB
-    subgraph core["~/dotfiles (this repo, public-bound)"]
+    subgraph core["~/rig (this repo, public-bound)"]
         flake["flake.nix + home.nix<br/>Emacs, CLI tools, language servers"]
         emacs["emacs/<br/>init.el, lisp/*.el"]
         zshcore["zsh/zshrc.core"]

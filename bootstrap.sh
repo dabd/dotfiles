@@ -3,8 +3,8 @@
 set -euo pipefail
 
 repo="$(cd "$(dirname "$0")" && pwd)"
-if [ "$repo" != "$HOME/dotfiles" ]; then
-  echo "error: repo must live at ~/dotfiles (out-of-store symlinks depend on it), found $repo" >&2
+if [ "$repo" != "$HOME/rig" ]; then
+  echo "error: repo must live at ~/rig (out-of-store symlinks depend on it), found $repo" >&2
   exit 1
 fi
 
@@ -30,9 +30,9 @@ zsh_custom="$HOME/.oh-my-zsh/custom"
 [ -d "$zsh_custom/plugins/zsh-syntax-highlighting" ] || git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "$zsh_custom/plugins/zsh-syntax-highlighting"
 
 if command -v home-manager >/dev/null 2>&1; then
-  home-manager switch --flake "$HOME/dotfiles#default" --impure
+  home-manager switch --flake "$HOME/rig#default" --impure
 else
-  nix run home-manager/master -- switch --flake "$HOME/dotfiles#default" --impure
+  nix run home-manager/master -- switch --flake "$HOME/rig#default" --impure
 fi
 
 echo "done. work machines: clone the work overlay repo and run its install.sh."

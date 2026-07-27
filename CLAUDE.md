@@ -1,4 +1,4 @@
-# dotfiles - Emacs + Nix home-manager
+# rig - Emacs + Nix home-manager
 
 A vanilla Emacs config managed by a Nix home-manager flake. The Nix layer
 (`flake.nix` + `home.nix`) pins the Emacs binary, CLI tools, and language
@@ -20,7 +20,7 @@ does nothing. To change the config:
 
 1. Edit the source file under `emacs/` (`early-init.el`, `init.el`, or
    `emacs/lisp/*.el`). Never edit under `~/.config/emacs`.
-2. `cd ~/dotfiles && home-manager switch --flake .#default --impure`
+2. `cd ~/rig && home-manager switch --flake .#default --impure`
 3. Quit Emacs (`C-x C-c`) and relaunch (`ec`). For a quick in-session try,
    `M-x eval-buffer`, but commit + switch + relaunch is the real path.
 

@@ -51,9 +51,9 @@
 
   # Agent CLIs rewrite these at runtime (model saves, hook edits), so they must
   # stay writable: out-of-store symlinks into the repo working copy. Requires
-  # the repo at ~/dotfiles and --impure (both already required).
+  # the repo at ~/rig and --impure (both already required).
   home.file = let
-    repoFile = path: config.lib.file.mkOutOfStoreSymlink "${homeDirectory}/dotfiles/${path}";
+    repoFile = path: config.lib.file.mkOutOfStoreSymlink "${homeDirectory}/rig/${path}";
   in {
     ".claude-personal/CLAUDE.md".source = repoFile "claude/CLAUDE.md";
     ".claude-personal/settings.json".source = repoFile "claude/settings.json";

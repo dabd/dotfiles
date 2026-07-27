@@ -1,4 +1,4 @@
-# Core zsh config, managed in dotfiles. Work overlay (if any): ~/.zshrc.work,
+# Core zsh config, managed in the rig repo. Work overlay (if any): ~/.zshrc.work,
 # sourced after this file by the ~/.zshrc stub, so its definitions win.
 
 export ZSH="$HOME/.oh-my-zsh"

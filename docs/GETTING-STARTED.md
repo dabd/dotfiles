@@ -177,10 +177,10 @@ needs none of it: launch with `ec` and go.
 
 ### Elisp tweaks (most changes)
 
-Edit a file in `~/dotfiles/emacs/lisp/`, then:
+Edit a file in `~/rig/emacs/lisp/`, then:
 
 ```bash
-cd ~/dotfiles && home-manager switch --flake .#default --impure   # update the store symlink
+cd ~/rig && home-manager switch --flake .#default --impure   # update the store symlink
 # then quit Emacs (C-x C-c) and relaunch: `ec`
 ```
 
@@ -190,11 +190,11 @@ until you `switch` and restart Emacs. (For a quick in-session try you can
 
 ### Tools / packages (Nix)
 
-Edit `~/dotfiles/home.nix` to add a CLI tool or language server →
+Edit `~/rig/home.nix` to add a CLI tool or language server →
 `home-manager switch`. For a new Elisp package, add the `use-package` form,
 `switch`, then let elpaca install it on next launch (or `M-x elpaca-process-queues`).
 
-Commit tweaks as you go (`git -C ~/dotfiles commit`) — that's what keeps the
+Commit tweaks as you go (`git -C ~/rig commit`) — that's what keeps the
 setup reproducible.
 
 ---

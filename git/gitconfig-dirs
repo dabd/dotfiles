@@ -4,7 +4,7 @@
     path = ~/.gitconfig-personal
 [includeIf "gitdir:/private/tmp/mystuff/"]
     path = ~/.gitconfig-personal
-[includeIf "gitdir:~/dotfiles/"]
+[includeIf "gitdir:~/rig/"]
     path = ~/.gitconfig-personal
 [includeIf "gitdir:~/tools/"]
     path = ~/.gitconfig-personal

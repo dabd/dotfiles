@@ -1,4 +1,4 @@
-# dotfiles
+# rig
 
 Personal machine setup, managed by Nix home-manager: Emacs, tmux, ghostty,
 zsh, git, and Claude/Codex agent config. Reproducible across machines (macOS
@@ -35,7 +35,7 @@ Agent policy used by every profile, work and personal, lives in this repo:
 `claude-shared/prose-rules.md` (each Claude profile's CLAUDE.md includes it)
 and `codex/skills/` (each codex profile symlinks it). The rule: this repo
 holds shared, personal-safe policy; the work overlay holds work-only config.
-The overlay may symlink into this repo (bootstrap pins it at `~/dotfiles`),
+The overlay may symlink into this repo (bootstrap pins it at `~/rig`),
 never the reverse. Pick the mechanism deliberately: an `@`-include when a
 profile wraps shared content with its own additions, a symlink when the file
 must be identical everywhere.
@@ -49,8 +49,8 @@ setting up a machine with a different username.
 Requires Nix (with flakes) installed and permitted on the target machine.
 
 ```bash
-git clone https://github.com/dabd/dotfiles ~/dotfiles
-~/dotfiles/bootstrap.sh
+git clone https://github.com/dabd/rig ~/rig
+~/rig/bootstrap.sh
 ```
 
 `bootstrap.sh` creates the `~/.zshrc` / `~/.gitconfig` stubs (only if absent),
@@ -59,7 +59,7 @@ runs the home-manager switch. Idempotent; safe to re-run. The manual
 equivalent of just the switch:
 
 ```bash
-cd ~/dotfiles
+cd ~/rig
 nix run home-manager/master -- switch --flake .#default --impure
 ```
 
