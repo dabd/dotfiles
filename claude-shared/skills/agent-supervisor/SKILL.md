@@ -80,10 +80,14 @@ explicit request only.
 Read `~/.local/state/agent-supervisor/last-brief`, which holds epoch seconds. If
 it is absent, use 24 hours ago. Then:
 
-1. Enumerate task windows: per session,
-   `tmux list-windows -t '=<session>' -F '#{window_index} #{window_name}'` and
-   `tmux list-panes -F '#{pane_current_path}'`. Window names are task labels;
-   pane paths locate the repos.
+1. Enumerate task windows: per session, one call that emits index, name, and
+   path together, tab separated, one line per pane:
+   `tmux list-panes -s -t '=<session>' -F '#{window_index}<TAB>#{window_name}<TAB>#{pane_current_path}'`
+   where `<TAB>` is a literal tab (`printf '\t'`). Keep both flags: `-s` widens
+   the call from one window to the session, and without `-t` it reports only the
+   invoking client's pane. Window names are the task labels; the paths locate
+   the repos. A split window yields one line per pane, so group by index and
+   treat distinct paths under one index as that task's repos.
 2. Locate transcripts modified since the timestamp. Claude: under
    `~/.claude/projects/*/` and `~/.claude-personal/projects/*/`, filtered on
    mtime. Codex: under `~/.codex/sessions/` and `~/.codex-personal/sessions/`,
