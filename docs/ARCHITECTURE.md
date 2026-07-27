@@ -1,9 +1,9 @@
 # Architecture
 
-How this repo, its satellites, and the private work overlay compose into one
-machine setup. The core repo is public-safe; anything employer-specific lives
-in a separate private overlay repo that is present only on work machines and
-always wins by loading last.
+How this repo (`rig`), its satellites, and the private work overlay
+(`rig-work`) compose into one machine setup. The core repo is public-safe;
+anything employer-specific lives in the overlay, which is present only on work
+machines and always wins by loading last.
 
 ```mermaid
 flowchart TB
@@ -13,6 +13,7 @@ flowchart TB
         zshcore["zsh/zshrc.core"]
         gitcore["git/gitconfig-core + fragments"]
         claudeshared["claude-shared/<br/>prose-rules, shared skills"]
+        codexdir["claude/ + codex/<br/>personal agent profiles"]
         bootstrap["bootstrap.sh"]
     end
 
@@ -22,7 +23,7 @@ flowchart TB
         tacit["tacit<br/>prose plugin"]
     end
 
-    subgraph overlay["work overlay repo (private, work machines only)"]
+    subgraph overlay["rig-work (private overlay, work machines only)"]
         zshwork["zshrc.work"]
         gitwork["git/gitconfig-work + identities"]
         claudework["claude-work/<br/>CLAUDE.md, rules, brief supplement"]
@@ -33,8 +34,8 @@ flowchart TB
         zshrc["~/.zshrc stub"]
         gitconfig["~/.gitconfig stub"]
         cfgemacs["~/.config/emacs (store symlinks)"]
-        personalprofile["~/.claude-personal<br/>personal agent profile"]
-        workprofile["~/.claude<br/>work agent profile"]
+        personalprofile["~/.claude-personal + ~/.codex-personal<br/>personal agent profiles"]
+        workprofile["~/.claude + ~/.codex<br/>work agent profiles"]
     end
 
     bootstrap -->|clones| tools
@@ -44,6 +45,7 @@ flowchart TB
     zshrc -->|sources last, wins| zshwork
     gitconfig -->|includes| gitcore
     gitconfig -->|includes, wins| gitwork
+    codexdir -->|home-manager switch| personalprofile
     csetup -->|bootstrap.sh| personalprofile
     csetup -->|bootstrap.sh, base layer| workprofile
     installsh -->|symlinks on top| workprofile
