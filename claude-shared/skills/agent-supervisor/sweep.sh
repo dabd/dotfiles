@@ -15,7 +15,10 @@ classify_pane() {
   # grep complain on stderr or inferring a state from an empty read.
   [ -r "$f" ] || { echo unknown; return; }
   tail40=$(grep -v '^[[:space:]]*$' "$f" | tail -40 || true)
-  if printf '%s\n' "$tail40" | grep -qiE 'do you want to proceed|allow command\?|don.t ask again|tell (claude|codex) what to do'; then
+  # Permission first, and it covers any interactive chooser, not just tool
+  # approval: a dialog screen (the session-resume chooser, for instance) means
+  # the agent is blocked on the user, which is what the board reports here.
+  if printf '%s\n' "$tail40" | grep -qiE 'do you want to proceed|allow command\?|don.t ask again|tell (claude|codex) what to do|Enter to confirm|^[[:space:]]*❯ [0-9]+\.'; then
     echo waiting_permission; return
   fi
   if printf '%s\n' "$tail40" | grep -qiE 'esc to interrupt|interrupt.*esc'; then
@@ -64,7 +67,9 @@ kind_from_command() {
 detect_kind() {
   local f=$1 cmd=$2
   if [ -r "$f" ]; then
-    if grep -qiF -e '% ctx ·' -e 'shift+tab to cycle' "$f"; then echo claude; return; fi
+    if grep -qiF -e '% ctx ·' -e 'shift+tab to cycle' -e 'Enter to confirm · Esc to cancel' "$f"; then
+      echo claude; return
+    fi
     if grep -qE 'Context [0-9]+% used|^› ' "$f"; then echo codex; return; fi
   fi
   kind_from_command "$cmd"

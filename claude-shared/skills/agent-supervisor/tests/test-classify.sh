@@ -31,7 +31,12 @@ check codex-idle-real.txt   codex  idle
 
 # pane_current_command is unreliable: Claude Code reports its version string,
 # Codex CLI reports node. Content decides; the command name is the fallback.
-check_kind claude-idle-real.txt 2.1.220 claude
+# A dialog screen (here the session-resume chooser) blocks on the user, so it
+# reports as waiting_permission even though no tool approval is pending.
+check claude-resume-dialog.txt claude waiting_permission
+
+check_kind claude-idle-real.txt    2.1.220 claude
+check_kind claude-resume-dialog.txt 2.1.220 claude
 check_kind codex-idle-real.txt  node    codex
 check_kind shell-prompt.txt     zsh     shell
 
