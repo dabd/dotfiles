@@ -85,11 +85,14 @@ explicit request only.
 ## 4. Brief mode (argument `brief`)
 
 Read `~/.local/state/agent-supervisor/last-brief`, which holds epoch seconds. If
-it is absent, default to the start of the previous working day: on a Monday that
-is Friday 00:00 local, otherwise the previous day at 00:00. Compute it with the
-`date` command rather than by hand. A present but stale timestamp needs no
-special handling: a brief run after a weekend covers the whole gap since the
-last brief on its own. Then:
+it is absent, default to the start of the most recent day before today that has
+any transcript activity: take the newest per-day mtimes across
+`~/.claude*/projects/` and `~/.codex*/sessions/`, pick the latest such day, and
+use its 00:00 local. This reaches Friday on an ordinary Monday and the last real
+working day after a long weekend or holiday. Compute dates with the `date`
+command rather than by hand. A present but stale timestamp needs no special
+handling: a brief run after any gap covers the whole span since the last brief
+on its own. Then:
 
 1. Enumerate task windows: per session, one call that emits index, name, and
    path together, tab separated, one line per pane:
