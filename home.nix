@@ -60,6 +60,7 @@
     ".claude-personal/statusline.sh".source = repoFile "claude/statusline.sh";
     ".claude-personal/hooks".source = repoFile "claude/hooks";
     ".claude-shared/prose-rules.md".source = repoFile "claude-shared/prose-rules.md";
+    ".claude-personal/skills".source = repoFile "claude-shared/skills";
     ".codex-personal/config.toml".source = repoFile "codex/config.toml";
     ".codex-personal/hooks.json".source = repoFile "codex/hooks.json";
     ".codex-personal/skills".source = repoFile "codex/skills";
