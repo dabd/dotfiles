@@ -60,7 +60,7 @@ If A, B, and C work, the setup is fully proven on your machine.
 ## 1. Daily launch habit
 
 Launch the GUI via the `.app` bundle (Launch Services) so it gets keyboard focus.
-Add these helpers to `~/.zshrc` (machine-local, not in this repo):
+These helpers are defined in `zsh/zshrc.core` (installed by this repo):
 
 ```bash
 ec() { open -a "$HOME/.nix-profile/Applications/Emacs.app" "$@"; }  # GUI, optional files
@@ -76,7 +76,7 @@ et() { "$HOME/.nix-profile/bin/emacs" -nw "$@"; }                   # terminal E
 - No daemon is used (the macport daemon can't serve a focus-correct GUI frame on
   macOS — see §6). The `.app` starts fast.
 - Quit with `C-x C-c`, or close a frame with `C-x 5 0`.
-- To set Emacs as `EDITOR`, point it at a terminal Emacs in `~/.zshrc`:
+- To set Emacs as `EDITOR`, point it at a terminal Emacs in `zsh/zshrc.core`:
   `export EDITOR='emacs -nw'` (or `export EDITOR=ec` if you prefer a GUI editor).
 
 ---
