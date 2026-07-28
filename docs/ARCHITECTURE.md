@@ -5,6 +5,10 @@ How this repo (`rig`), its satellites, and the private work overlay
 anything employer-specific lives in the overlay, which is present only on work
 machines and always wins by loading last.
 
+Two views, both flowing top to bottom from source repos to installed surfaces.
+
+## Shell, git and Emacs config
+
 ```mermaid
 flowchart TB
     subgraph core["~/rig (this repo, public-bound)"]
@@ -12,44 +16,58 @@ flowchart TB
         emacs["emacs/<br/>init.el, lisp/*.el"]
         zshcore["zsh/zshrc.core"]
         gitcore["git/gitconfig-core + fragments"]
-        claudeshared["claude-shared/<br/>prose-rules, shared skills"]
-        codexdir["claude/ + codex/<br/>personal agent profiles"]
-        bootstrap["bootstrap.sh"]
-    end
-
-    subgraph tools["~/tools (satellites, cloned by bootstrap.sh)"]
-        csetup["claude-setup<br/>agent profile base: CLAUDE.md,<br/>guard hooks, safety-net, bootstrap"]
-        sos["save-our-sessions<br/>tmux session recovery"]
-        tacit["tacit<br/>prose plugin"]
     end
 
     subgraph overlay["rig-work (private overlay, work machines only)"]
         zshwork["zshrc.work"]
         gitwork["git/gitconfig-work + identities"]
+    end
+
+    subgraph home["installed surfaces in $HOME"]
+        cfgemacs["~/.config/emacs (store symlinks)"]
+        zshrc["~/.zshrc stub"]
+        gitconfig["~/.gitconfig stub"]
+    end
+
+    flake -->|home-manager switch| cfgemacs
+    zshcore -->|sourced first| zshrc
+    zshwork -->|sourced last, wins| zshrc
+    gitcore -->|included first| gitconfig
+    gitwork -->|included last, wins| gitconfig
+```
+
+## Agent profiles
+
+```mermaid
+flowchart TB
+    subgraph core2["~/rig (this repo, public-bound)"]
+        bootstrap["bootstrap.sh"]
+        codexdir["claude/ + codex/<br/>personal agent profiles"]
+        claudeshared["claude-shared/<br/>prose-rules, shared skills"]
+    end
+
+    subgraph tools["~/tools (satellites)"]
+        csetup["claude-setup<br/>agent profile base: CLAUDE.md,<br/>guard hooks, safety-net, bootstrap"]
+        sos["save-our-sessions<br/>tmux session recovery"]
+        tacit["tacit<br/>prose plugin"]
+    end
+
+    subgraph overlay2["rig-work (private overlay, work machines only)"]
         claudework["claude-work/<br/>CLAUDE.md, rules, brief supplement"]
         installsh["install.sh (idempotent symlinker)"]
     end
 
-    subgraph home["installed surfaces in $HOME"]
-        zshrc["~/.zshrc stub"]
-        gitconfig["~/.gitconfig stub"]
-        cfgemacs["~/.config/emacs (store symlinks)"]
+    subgraph home2["profiles in $HOME"]
         personalprofile["~/.claude-personal + ~/.codex-personal<br/>personal agent profiles"]
         workprofile["~/.claude + ~/.codex<br/>work agent profiles"]
     end
 
     bootstrap -->|clones| tools
-    flake -->|home-manager switch| cfgemacs
-    flake -->|home-manager switch| zshrc
-    zshrc -->|sources first| zshcore
-    zshrc -->|sources last, wins| zshwork
-    gitconfig -->|includes| gitcore
-    gitconfig -->|includes, wins| gitwork
     codexdir -->|home-manager switch| personalprofile
     csetup -->|bootstrap.sh| personalprofile
     csetup -->|bootstrap.sh, base layer| workprofile
-    installsh -->|symlinks on top| workprofile
     claudework --> installsh
+    installsh -->|symlinks on top| workprofile
     claudeshared -->|shared skills| workprofile
 ```
 
