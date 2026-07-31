@@ -2,8 +2,6 @@
 # they beat a work overlay's default identity.
 [includeIf "gitdir:~/projects/mystuff/"]
     path = ~/.gitconfig-personal
-[includeIf "gitdir:/private/tmp/mystuff/"]
-    path = ~/.gitconfig-personal
 [includeIf "gitdir:~/rig/"]
     path = ~/.gitconfig-personal
 [includeIf "gitdir:~/tools/"]
