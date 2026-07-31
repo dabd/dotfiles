@@ -49,6 +49,23 @@
   xdg.configFile."git/gitconfig-core".source = ./git/gitconfig-core;
   xdg.configFile."git/gitconfig-dirs".source = ./git/gitconfig-dirs;
 
+  # Weekly git-aware janitor for the agents/ work roots (bin/agents-gc).
+  # Replaces relying on macOS tmp_cleaner, which blindly ate multi-day /tmp
+  # checkouts (2026-07-31). Report-only: add "--apply" to ProgramArguments
+  # once a report has been eyeballed. Work machines add their own root via
+  # a roots.d drop-in from their overlay's install script.
+  xdg.configFile."agents-gc/roots.d/00-mystuff".text =
+    "${homeDirectory}/projects/mystuff/agents\n";
+  launchd.agents.agents-gc = {
+    enable = true;
+    config = {
+      ProgramArguments = [ "${homeDirectory}/bin/agents-gc" ];
+      StartCalendarInterval = [ { Weekday = 1; Hour = 9; Minute = 0; } ];
+      StandardOutPath = "${homeDirectory}/Library/Logs/agents-gc.log";
+      StandardErrorPath = "${homeDirectory}/Library/Logs/agents-gc.log";
+    };
+  };
+
   # Agent CLIs rewrite these at runtime (model saves, hook edits), so they must
   # stay writable: out-of-store symlinks into the repo working copy. Requires
   # the repo at ~/rig and --impure (both already required).
@@ -65,5 +82,6 @@
     ".codex-personal/hooks.json".source = repoFile "codex/hooks.json";
     ".codex-personal/skills".source = repoFile "codex/skills";
     ".gitconfig-personal".source = ./git/gitconfig-personal;
+    "bin/agents-gc" = { source = ./bin/agents-gc; executable = true; };
   };
 }

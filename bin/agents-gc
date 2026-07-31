@@ -1,0 +1,235 @@
+#!/usr/bin/env bash
+# agents-gc: git-aware janitor for agent work roots (~/projects/*/agents).
+#
+# Replaces the macOS tmp_cleaner blind sweep that destroyed unpushed work on
+# 2026-07-31. Never deletes anything it cannot prove is disposable:
+#
+#   CACHE   dir named *-cache, no top-level .git, idle > 7 days
+#           -> deleted (naming the dir *-cache is the opt-in)
+#   SAFE    git repo, clean tree, no stash, no unpushed commits (every branch
+#           and HEAD reachable from some remote-tracking ref), no linked
+#           worktrees, no nested repos, idle > 14 days
+#           -> staged to ~/.agents-trash/<date>/, purged after 30 days
+#   everything else (dirty, unpushed, unreadable, repo-shaped-without-.git,
+#   plain dirs, files, symlinks) -> reported, never touched
+#
+# Idle = newest file mtime anywhere in the tree (atime burned tmp_cleaner).
+# Default is report-only; --apply performs deletions, staging, and trash
+# purge. A report is written to ~/.agents-trash/reports/ either way.
+#
+# Roots come from ~/.config/agents-gc/roots.d/* (one absolute path per line,
+# comments allowed). A root must end in /agents; anything else is refused.
+# rig ships 00-mystuff; a work overlay may add its own root via a drop-in.
+#
+# Env overrides (for tests): AGENTS_GC_ROOTS_DIR, AGENTS_GC_TRASH.
+
+set -u
+PATH="/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/opt/homebrew/bin:$HOME/.nix-profile/bin"
+
+CACHE_IDLE_DAYS=7
+SAFE_IDLE_DAYS=14
+TRASH_PURGE_DAYS=30
+
+ROOTS_DIR="${AGENTS_GC_ROOTS_DIR:-$HOME/.config/agents-gc/roots.d}"
+TRASH="${AGENTS_GC_TRASH:-$HOME/.agents-trash}"
+
+APPLY=0
+case "${1:-}" in
+  --apply) APPLY=1 ;;
+  "") ;;
+  --help|-h) sed -n '2,25p' "$0"; exit 0 ;;
+  *) echo "usage: agents-gc [--apply]" >&2; exit 64 ;;
+esac
+
+mkdir -p "$TRASH/reports"
+LOCK="$TRASH/.lock"
+if ! mkdir "$LOCK" 2>/dev/null; then
+  echo "agents-gc: lock $LOCK held, another run in progress" >&2
+  exit 2
+fi
+trap 'rmdir "$LOCK" 2>/dev/null' EXIT
+
+REPORT="$TRASH/reports/agents-gc-$(date +%Y%m%d-%H%M%S).md"
+MODE=report-only; [ "$APPLY" = 1 ] && MODE=apply
+{
+  echo "# agents-gc $(date '+%Y-%m-%d %H:%M') mode=$MODE"
+  echo
+} > "$REPORT"
+
+say() { echo "$*" | tee -a "$REPORT"; }
+
+# All destructive ops go through here: absolute path, resolvable, strictly
+# inside an expected parent, and not the parent itself.
+safe_rm() {
+  local target="$1" parent="$2" rp pp
+  case "$target" in /*) ;; *) say "REFUSED rm (relative): $target"; return 1 ;; esac
+  rp=$(realpath "$target" 2>/dev/null) || { say "REFUSED rm (unresolvable): $target"; return 1; }
+  pp=$(realpath "$parent" 2>/dev/null) || { say "REFUSED rm (bad parent): $parent"; return 1; }
+  case "$rp" in
+    "$pp"/*) rm -rf -- "$rp" ;;
+    *) say "REFUSED rm (outside $pp): $rp"; return 1 ;;
+  esac
+}
+
+# Any file modified in the last N days anywhere in the tree? .git internals
+# are excluded: this scan's own git calls refresh .git/index, so counting
+# them would keep every repo "recent" forever. Worktree mtimes are the signal.
+is_recent() { # dir days
+  [ -n "$(find "$1" -name .git -type d -prune -o -type f -mtime -"$2" -print -quit 2>/dev/null)" ]
+}
+
+dir_kb() { du -sk "$1" 2>/dev/null | awk '{print $1}'; }
+
+TOTAL_RECLAIM_KB=0
+add_reclaim() { TOTAL_RECLAIM_KB=$((TOTAL_RECLAIM_KB + ${1:-0})); }
+
+classify_repo() { # dir -> echoes "TIER reason"
+  local d="$1" out
+  if ! git -C "$d" rev-parse --git-dir >/dev/null 2>&1; then
+    echo "UNREADABLE git cannot open the repo (swept or unborn)"; return
+  fi
+  if [ -f "$d/.git" ]; then
+    echo "WORKTREE-LINK linked worktree; remove with git worktree remove"; return
+  fi
+  # Command substitutions (not pipelines) so a failing git exit is never
+  # mistaken for clean output.
+  if ! out=$(git -C "$d" status --porcelain 2>/dev/null); then
+    echo "UNREADABLE git status failed"; return
+  fi
+  if [ -n "$out" ]; then
+    echo "DIRTY $(printf '%s\n' "$out" | wc -l | tr -d ' ') uncommitted change(s)"; return
+  fi
+  if [ -n "$(git -C "$d" stash list 2>/dev/null | head -1)" ]; then
+    echo "STASH stash entries present"; return
+  fi
+  local wts; wts=$(git -C "$d" worktree list --porcelain 2>/dev/null | grep -c '^worktree ')
+  if [ "${wts:-1}" -gt 1 ]; then echo "HAS-WORKTREES linked worktrees registered"; return; fi
+  if [ -n "$(find "$d" -mindepth 2 -maxdepth 4 -name .git -print -quit 2>/dev/null)" ]; then
+    echo "NESTED-GIT contains nested repos; judge manually"; return
+  fi
+  # Branches and HEAD only, not --tags: cloned repos routinely carry tags
+  # whose history is on no branch tip (old releases), which would mark every
+  # such repo unpushed forever. Known gap: a locally created tag on an
+  # otherwise unreferenced commit is not protected.
+  if ! out=$(git -C "$d" log --branches HEAD --not --remotes --oneline 2>/dev/null); then
+    echo "UNREADABLE history walk failed (unborn HEAD or missing objects)"; return
+  fi
+  if [ -n "$out" ]; then
+    echo "UNPUSHED $(printf '%s\n' "$out" | wc -l | tr -d ' ') commit(s) not on any remote"; return
+  fi
+  echo "SAFE clean and fully pushed"
+}
+
+scan_root() { # root
+  local root="$1"
+  case "$root" in
+    */agents) ;;
+    *) say "SKIP root (must end in /agents): $root"; return ;;
+  esac
+  [ -d "$root" ] || { say "SKIP root (missing): $root"; return; }
+  say "## root $root"
+  local entry name kb tier reason
+  for entry in "$root"/* "$root"/.[!.]*; do
+    [ -e "$entry" ] || [ -L "$entry" ] || continue
+    name=$(basename "$entry")
+    case "$name" in .backups|.lock|worktrees) say "  SKIP-SPECIAL     $name"; continue ;; esac
+    if [ -L "$entry" ]; then say "  SYMLINK          $name (never touched)"; continue; fi
+    if [ -f "$entry" ]; then say "  FILE             $name (never touched)"; continue; fi
+    [ -d "$entry" ] || continue
+
+    if [ ! -e "$entry/.git" ]; then
+      case "$name" in
+        *-cache)
+          if is_recent "$entry" "$CACHE_IDLE_DAYS"; then
+            say "  CACHE-ACTIVE     $name (used in last ${CACHE_IDLE_DAYS}d)"
+          else
+            kb=$(dir_kb "$entry")
+            if [ "$APPLY" = 1 ]; then
+              if safe_rm "$entry" "$root"; then
+                say "  CACHE-DELETED    $name (${kb:-?} KB)"; add_reclaim "${kb:-0}"
+              fi
+            else
+              say "  CACHE-EXPIRED    $name (${kb:-?} KB, would delete)"; add_reclaim "${kb:-0}"
+            fi
+          fi
+          ;;
+        *)
+          if [ -e "$entry/build.sbt" ] || [ -e "$entry/package.json" ] || [ -d "$entry/src" ] \
+             || [ -d "$entry/modules" ] || [ -d "$entry/.github" ]; then
+            say "  GUTTED           $name (repo-shaped, no .git; possible salvage - never touched)"
+          else
+            kb=$(dir_kb "$entry")
+            say "  PLAIN            $name (${kb:-?} KB, never touched)"
+          fi
+          ;;
+      esac
+      continue
+    fi
+
+    local verdict; verdict=$(classify_repo "$entry")
+    tier=${verdict%% *}; reason=${verdict#* }
+    if [ "$tier" = SAFE ]; then
+      if is_recent "$entry" "$SAFE_IDLE_DAYS"; then
+        say "  ACTIVE           $name (clean+pushed, used in last ${SAFE_IDLE_DAYS}d)"
+      else
+        kb=$(dir_kb "$entry")
+        if [ "$APPLY" = 1 ]; then
+          local dest="$TRASH/$(date +%F)"
+          mkdir -p "$dest"
+          local target="$dest/$name"
+          [ -e "$target" ] && target="$target.$(date +%H%M%S)"
+          if mv "$entry" "$target"; then
+            say "  SAFE-TRASHED     $name -> $target (${kb:-?} KB)"; add_reclaim "${kb:-0}"
+          else
+            say "  ERROR            $name (mv to trash failed)"
+          fi
+        else
+          say "  SAFE-EXPIRED     $name (${kb:-?} KB, would stage to trash)"; add_reclaim "${kb:-0}"
+        fi
+      fi
+    else
+      say "$(printf '  %-16s %s (%s)' "$tier" "$name" "$reason")"
+    fi
+  done
+}
+
+purge_trash() {
+  local d name epoch cutoff
+  cutoff=$(date -v-"$TRASH_PURGE_DAYS"d +%s)
+  for d in "$TRASH"/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]; do
+    [ -d "$d" ] || continue
+    name=$(basename "$d")
+    epoch=$(date -j -f %Y-%m-%d "$name" +%s 2>/dev/null) || continue
+    if [ "$epoch" -lt "$cutoff" ]; then
+      if [ "$APPLY" = 1 ]; then
+        if safe_rm "$d" "$TRASH"; then say "  TRASH-PURGED     $name"; fi
+      else
+        say "  TRASH-EXPIRED    $name (would purge, older than ${TRASH_PURGE_DAYS}d)"
+      fi
+    fi
+  done
+}
+
+found_roots=0
+if [ -d "$ROOTS_DIR" ]; then
+  while IFS= read -r line; do
+    line="${line%%#*}"
+    line=$(echo "$line" | tr -d '[:space:]')
+    [ -n "$line" ] || continue
+    found_roots=1
+    scan_root "$line"
+    say ""
+  done < <(cat "$ROOTS_DIR"/* 2>/dev/null)
+fi
+[ "$found_roots" = 1 ] || say "no roots configured in $ROOTS_DIR"
+
+say "## trash ($TRASH)"
+purge_trash
+
+say ""
+if [ "$APPLY" = 1 ]; then
+  say "reclaimed (deleted + staged to trash): $((TOTAL_RECLAIM_KB / 1024)) MB"
+else
+  say "would reclaim with --apply: $((TOTAL_RECLAIM_KB / 1024)) MB"
+fi
+say "report: $REPORT"
