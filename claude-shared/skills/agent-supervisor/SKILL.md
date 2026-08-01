@@ -26,11 +26,16 @@ It prints one JSON object:
 
 ```
 {generated_at, sessions:[{session, windows:[
-  {index, name, agent, state, changed, unchanged_sweeps, possibly_stuck,
-   tail}]}]}
+  {index, name, agent, profile, state, changed, unchanged_sweeps,
+   possibly_stuck, tail}]}]}
 ```
 
-`agent` is `claude`, `codex`, `shell`, or `other`. `state` is
+`agent` is `claude`, `codex`, `shell`, or `other`. `profile` names the agent's
+config-dir profile, read from the pane's process environment (the wrappers set
+CLAUDE_CONFIG_DIR / CODEX_HOME): `personal` for the -personal dirs, `default`
+for the stock dirs (the work profile on this machine), and `""` when no
+process in the pane's tree carries the variable (agent gone, or launched bare)
+or the kind is not an agent. `state` is
 `waiting_permission`, `working`, `idle`, `exited`, or `unknown`.
 `possibly_stuck` is true when a `working` pane produced no real output for 3 or
 more consecutive sweeps. `tail` is populated only when the window changed, when

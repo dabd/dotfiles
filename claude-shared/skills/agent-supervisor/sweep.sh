@@ -59,6 +59,53 @@ kind_from_command() {
   esac
 }
 
+# descendants <pid> -> all descendant pids, one per line.
+descendants() {
+  local p
+  for p in $(pgrep -P "$1" 2>/dev/null); do
+    echo "$p"
+    descendants "$p"
+  done
+}
+
+# detect_profile <pane_pid> <kind> -> profile name or ""
+# The profile wrappers set the agent's config dir in its environment
+# (CLAUDE_CONFIG_DIR for Claude Code, CODEX_HOME for Codex), and `ps eww` can
+# read a same-user process's environment, so the pane's process tree names the
+# profile where the chrome cannot: both profiles render identical panes.
+# Reports the dir's suffix after the stock name (".codex-personal" ->
+# "personal"), "default" for the stock dir, the basename for anything else,
+# and "" when no process in the tree carries the variable (agent gone, or
+# launched bare without a wrapper).
+detect_profile() {
+  local pane_pid=$1 kind=$2 var stock p env_dir
+  case "$kind" in
+    claude) var=CLAUDE_CONFIG_DIR; stock=.claude ;;
+    codex)  var=CODEX_HOME;        stock=.codex ;;
+    *) echo ""; return ;;
+  esac
+  for p in $pane_pid $(descendants "$pane_pid"); do
+    env_dir=$(ps eww -o command= -p "$p" 2>/dev/null | tr ' ' '\n' | sed -n "s/^$var=//p" | head -1)
+    [ -n "$env_dir" ] || continue
+    profile_from_dir "$env_dir" "$stock"
+    return
+  done
+  echo ""
+}
+
+# profile_from_dir <config_dir> <stock_basename> -> profile name
+# ".codex-personal"/".codex" -> "personal"/"default"; anything off-pattern
+# reports its basename rather than guessing.
+profile_from_dir() {
+  local base
+  base=$(basename "$1")
+  case "$base" in
+    "$2")   echo default ;;
+    "$2"-*) echo "${base#"$2"-}" ;;
+    *)      echo "$base" ;;
+  esac
+}
+
 # detect_kind <file> <pane_current_command> -> claude|codex|shell|other
 # Content first, because pane_current_command lies about real agents: Claude Code
 # reports its own version string (e.g. 2.1.220, different every release) and
@@ -88,6 +135,16 @@ if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
     exit 0
   fi
 
+  if [ "${1:-}" = "--detect-profile" ]; then
+    detect_profile "$2" "$3"
+    exit 0
+  fi
+
+  if [ "${1:-}" = "--profile-from-dir" ]; then
+    profile_from_dir "$2" "$3"
+    exit 0
+  fi
+
   command -v tmux >/dev/null || { echo "tmux not found" >&2; exit 2; }
   tmux info >/dev/null 2>&1 || { echo "tmux server not running" >&2; exit 2; }
 
@@ -111,8 +168,8 @@ if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
     mkdir -p "$sdir"
     window_jsons=""
 
-    # one line per window: index<TAB>name<TAB>pane_current_command
-    while IFS=$(printf '\t') read -r idx name cmd; do
+    # one line per window: index<TAB>name<TAB>pane_current_command<TAB>pane_pid
+    while IFS=$(printf '\t') read -r idx name cmd pane_pid; do
       snap="$sdir/win-$idx.txt"
       cnt="$sdir/win-$idx.count"
       new=$(mktemp)
@@ -133,6 +190,7 @@ if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
       # Detect the kind after the mv, so it reads this sweep's capture rather
       # than the previous one (or nothing at all on the first sweep).
       kind=$(detect_kind "$snap" "$cmd")
+      profile=$(detect_profile "$pane_pid" "$kind")
       state=$(classify_pane "$snap" "$kind")
       stuck=false
       [ "$state" = "working" ] && [ "$unchanged" -ge "$STUCK_SWEEPS" ] && stuck=true
@@ -158,14 +216,16 @@ if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
 
       w=$(jq -n \
         --argjson index "$idx" --arg name "$name" --arg agent "$kind" \
+        --arg profile "$profile" \
         --arg state "$state" --argjson changed "$changed" \
         --argjson unchanged "$unchanged" --argjson stuck "$stuck" \
         --argjson tail "$tail_json" \
-        '{index:$index,name:$name,agent:$agent,state:$state,changed:$changed,
-          unchanged_sweeps:$unchanged,possibly_stuck:$stuck,tail:$tail}')
+        '{index:$index,name:$name,agent:$agent,profile:$profile,state:$state,
+          changed:$changed,unchanged_sweeps:$unchanged,possibly_stuck:$stuck,
+          tail:$tail}')
       window_jsons="$window_jsons$w"
     done <<EOF
-$(tmux list-windows -t "=$s" -F "#{window_index}$(printf '\t')#{window_name}$(printf '\t')#{pane_current_command}")
+$(tmux list-windows -t "=$s" -F "#{window_index}$(printf '\t')#{window_name}$(printf '\t')#{pane_current_command}$(printf '\t')#{pane_pid}")
 EOF
 
     # prune state for windows that no longer exist
