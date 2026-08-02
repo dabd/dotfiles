@@ -1,6 +1,6 @@
 ---
 name: fencing
-description: Use before deleting, simplifying, or bypassing existing code whose purpose is not obvious - guards, retries, sleeps, caps, magic numbers, special cases. Recovers why the code exists from git history before you remove it.
+description: Use before any edit that deletes, disables, bypasses, skips, or simplifies away existing behavior whose purpose is not obvious - guards, retries, sleeps, caps, magic numbers, special cases, protocol layers. This includes optimization requests that route around existing machinery. Recovers why the code exists from git history before you remove it.
 ---
 
 # fencing
@@ -64,6 +64,9 @@ WITH EYES OPEN, not a confident guess.
   cannot change what compiles need no fence check. Anything else with zero
   references still gets the fast path, not a skip: dead-looking code with a
   live reason is the whole point of this skill.
+- Fencing your own fresh work: code introduced in the current session or the
+  current unmerged change has no history to excavate; deleting it needs no
+  fence check.
 - History tourism: stop at the first commit that states the reason; the
   full lineage is not the deliverable.
 - Verdict inflation: KEEP requires a live, named constraint. Reverence for
