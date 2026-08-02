@@ -1,6 +1,6 @@
 ---
 name: blastradius
-description: Given a change (diff, PR, or described), enumerate what moves beyond the diff: callers, configs, metrics, dashboards, alerts, logs, wire formats, docs, downstream consumers. Every claimed edge is verified by search or labeled speculative.
+description: "Given a change (diff, PR, or described), enumerate what moves beyond the diff: callers, configs, metrics, dashboards, alerts, logs, wire formats, docs, downstream consumers. Every claimed edge is verified by search or labeled speculative."
 disable-model-invocation: true
 ---
 
