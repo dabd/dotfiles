@@ -31,6 +31,12 @@ constraint still alive.
       record it as searched-and-unresolvable and let the verdict say so.
    d. Tests that would fail if the code were removed: name them; do not run
       them yet.
+   e. Upstream provenance, when the fence is built from library APIs: read
+      the documentation of the exact calls involved and search the
+      library's docs and issue tracker for the combination. A transplanted
+      idiom carries its reason in the upstream docs, not in your repo's
+      history, and a whole pattern arriving in one commit with no local
+      rationale is the signature of a transplant.
 3. Constraint liveness: is the original condition still true today? Check
    the dependency, platform, caller, or bug it guarded against on the
    current tree, not the historical one.
@@ -54,9 +60,23 @@ trail.
 
 ## Evidence rule
 
-Every claim cites a commit, PR, ticket, test name, or file:line. "Probably
-legacy" is not a verdict. If the evidence is thin, the verdict is REMOVE
-WITH EYES OPEN, not a confident guess.
+Every claim cites a commit, PR, ticket, test name, file:line, or a named
+upstream doc. "Probably legacy" is not a verdict. If the evidence is thin,
+the verdict is REMOVE WITH EYES OPEN, not a confident guess.
+
+Three priors that bound the verdict:
+
+- Rare-variant prior: code using the marked variant of a common API (the
+  Weak, Unsafe, uncancelable, the longer stranger name) is presumed
+  deliberate. An unexplained rare variant never gets plain REMOVE: recover
+  the variant's documented semantics first, and if the difference is
+  load-bearing on this path, the verdict is KEEP.
+- Replacement semantics: a verdict that endorses replacing API A with API
+  B states the A-vs-B semantic difference from the library's own
+  documentation, not from memory.
+- Hot-path cap: on the hot path of the service's core function, "no reason
+  recoverable" caps at REMOVE WITH EYES OPEN, and the canary must be a
+  load or soak run, not a unit test.
 
 ## Anti-patterns
 
