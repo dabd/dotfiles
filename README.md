@@ -5,6 +5,95 @@ zsh, git, and Claude/Codex agent config. Reproducible across machines (macOS
 and, in principle, Linux). The Emacs config is plain Elisp, so it works even
 cloned without Nix. Nix pins the binaries, language servers, and CLI tools.
 
+## Architecture
+
+How this repo (`rig`), its satellites, and an optional private overlay repo
+compose into one machine setup. The core repo is public-safe and defines the
+overlay sockets (files sourced or included last); it references no overlay by
+name. Work machines currently plug in one overlay, `rig-work`, which holds
+everything employer-specific and always wins by loading last.
+
+Two views, both flowing top to bottom from source repos to installed surfaces.
+
+### Shell, git and Emacs config
+
+```mermaid
+flowchart TB
+    subgraph core["~/rig (this repo, public-bound)"]
+        flake["flake.nix + home.nix<br/>Emacs, CLI tools, language servers"]
+        emacs["emacs/<br/>init.el, lisp/*.el"]
+        zshcore["zsh/zshrc.core"]
+        gitcore["git/gitconfig-core + fragments"]
+    end
+
+    subgraph overlay["private overlay repo (optional; work machines use rig-work)"]
+        zshwork["zshrc.work"]
+        gitwork["git/gitconfig-work + identities"]
+    end
+
+    subgraph home["installed surfaces in $HOME"]
+        cfgemacs["~/.config/emacs (store symlinks)"]
+        zshrc["~/.zshrc stub"]
+        gitconfig["~/.gitconfig stub"]
+    end
+
+    flake -->|home-manager switch| cfgemacs
+    zshcore -->|sourced first| zshrc
+    zshwork -->|sourced last, wins| zshrc
+    gitcore -->|included first| gitconfig
+    gitwork -->|included last, wins| gitconfig
+```
+
+### Agent profiles
+
+```mermaid
+flowchart TB
+    subgraph core2["~/rig (this repo, public-bound)"]
+        bootstrap["bootstrap.sh"]
+        codexdir["claude/ + codex/<br/>personal agent profiles"]
+        claudeshared["claude-shared/<br/>prose-rules, shared skills"]
+    end
+
+    subgraph tools["~/tools (satellites)"]
+        csetup["claude-setup<br/>agent profile base: CLAUDE.md,<br/>guard hooks, safety-net, bootstrap"]
+        sos["save-our-sessions<br/>tmux session recovery"]
+        tacit["tacit<br/>prose plugin"]
+    end
+
+    subgraph overlay2["private overlay repo (optional; work machines use rig-work)"]
+        claudework["claude-work/<br/>CLAUDE.md, rules, hooks,<br/>brief supplement"]
+        codexwork["codex-work/<br/>AGENTS.md, hooks.json"]
+        installsh["install.sh (idempotent symlinker)"]
+    end
+
+    subgraph home2["profiles in $HOME"]
+        personalprofile["~/.claude-personal + ~/.codex-personal<br/>personal agent profiles"]
+        workprofile["~/.claude + ~/.codex<br/>work agent profiles"]
+    end
+
+    bootstrap -->|clones| tools
+    codexdir -->|home-manager switch| personalprofile
+    csetup -->|bootstrap.sh| personalprofile
+    csetup -->|bootstrap.sh, base layer| workprofile
+    claudework --> installsh
+    codexwork --> installsh
+    claudeshared -->|shared + Future Tokens skills| installsh
+    codexdir -->|shared codex skills| installsh
+    installsh -->|symlinks on top| workprofile
+```
+
+Layering rules:
+
+- The core repo never contains client names, internal hostnames, or secrets.
+  The overlay repo holds all of those and is never public.
+- Overlay config always loads after core config, so work settings win on work
+  machines and their absence is harmless everywhere else.
+- Agent profiles follow the same pattern as the shell: `claude-setup` installs
+  the shared base into each profile dir, then the overlay's `install.sh`
+  symlinks work-specific instructions and rules on top.
+- Machine-local, uncommitted state (Emacs `~/.config/emacs-local/`, secrets in
+  1Password) sits outside all three repos.
+
 ## What this repo manages
 
 - `emacs/` - the full Emacs config (plain Elisp, symlinked to `~/.config/emacs`)

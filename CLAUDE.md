@@ -10,7 +10,8 @@ elpaca pins the Elisp packages.
 
 ## Read first
 
-- `docs/ARCHITECTURE.md` - how core, satellites, and the work overlay compose.
+- `README.md` (Architecture section) - how core, satellites, and the work
+  overlay compose.
 - `docs/GETTING-STARTED.md` - daily Emacs launch, keybindings, the dev loop,
   escape hatches. Start here for Emacs.
 - `docs/HANDOFF.md` - status snapshot and deferred backlog, if present. This
