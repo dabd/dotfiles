@@ -54,10 +54,16 @@ constraint still alive.
      the constraint expired (cite what expired and when), or it never
      existed - accidental duplication, dead on arrival (cite the
      introducing commit showing no reason was recorded).
-   - REMOVE WITH EYES OPEN: no reason recoverable. Say so plainly, list
-     what was searched (log, PRs, tickets, tests, including links that
-     could not be resolved), and name the cheapest canary that would catch
-     a regression: a test to add first, or a metric to watch after.
+   - REMOVE WITH EYES OPEN: no reason recoverable. Before settling here,
+     hypothesize: what must have been true for a competent engineer to
+     write this? Rank the two or three candidate reasons (performance,
+     transplanted idiom, workaround for a since-fixed bug, platform
+     quirk) and spend one search on each - a hypothesis often names the
+     archive the reason lives in. If they all come up empty, say so
+     plainly, list what was searched (log, PRs, tickets, tests, upstream
+     docs, including links that could not be resolved), and name the
+     cheapest canary that would catch a regression: a test to add first,
+     or a metric to watch after.
 
 ## Interaction contract (what a verdict does to the edit in flight)
 
@@ -79,16 +85,23 @@ The verdict leads the response; it is never buried under a diff.
 
 ## Fast path
 
-Reason recovered in one blame and clearly dead or clearly alive: answer in
-three lines or fewer and proceed with the edit. The full report is for
-genuinely murky fences, contested verdicts, and callers who asked for the
-trail.
+Reason recovered in one blame: answer in three lines or fewer. Clearly dead:
+proceed with the edit. Clearly alive: decline it, same three lines - the
+fast path shortens the report, never the interaction contract. The full
+report is for genuinely murky fences, contested verdicts, and callers who
+asked for the trail.
+
+Steps 2e and 2f are proportionate, not routine: run them when steps 2a-2d
+recover no reason, or when the edit swaps a library API for a sibling.
+Recovered-and-clear fences do not need an upstream excavation.
 
 ## Evidence rule
 
-Every claim cites a commit, PR, ticket, test name, file:line, or a named
-upstream doc. "Probably legacy" is not a verdict. If the evidence is thin,
-the verdict is REMOVE WITH EYES OPEN, not a confident guess.
+Every claim cites a commit, PR, ticket, test name, file:line, or an
+upstream doc you actually fetched and can quote - an upstream source named
+from memory is not a citation. "Probably legacy" is not a verdict. If the
+evidence is thin, the verdict is REMOVE WITH EYES OPEN, not a confident
+guess.
 
 Three priors that bound the verdict:
 
@@ -100,9 +113,10 @@ Three priors that bound the verdict:
 - Replacement semantics: a verdict that endorses replacing API A with API
   B states the A-vs-B semantic difference from the library's own
   documentation, not from memory.
-- Hot-path cap: on the hot path of the service's core function, "no reason
-  recoverable" caps at REMOVE WITH EYES OPEN, and the canary must be a
-  load or soak run, not a unit test.
+- Hot-path cap: on the hot path of the service's core function (code that
+  runs per request or per item, not at startup), "no reason recoverable"
+  caps at REMOVE WITH EYES OPEN, and the canary must be a load or soak
+  run, not a unit test.
 
 ## Anti-patterns
 
@@ -113,6 +127,9 @@ Three priors that bound the verdict:
 - Fencing your own fresh work: code introduced in the current session or the
   current unmerged change has no history to excavate; deleting it needs no
   fence check.
+- Fencing a rollback: reverting a recent change to its prior known-good
+  state is returning to the fence, not removing one. Never delay a revert,
+  especially during incident response.
 - History tourism: stop at the first commit that states the reason; the
   full lineage is not the deliverable.
 - Verdict inflation: KEEP requires a live, named constraint. Reverence for
