@@ -37,6 +37,14 @@ constraint still alive.
       idiom carries its reason in the upstream docs, not in your repo's
       history, and a whole pattern arriving in one commit with no local
       rationale is the signature of a transplant.
+   f. Semantic-owner descent: the layer you call is rarely the layer that
+      defines the behavior. The test is ownership, not topic: if you can
+      state what the change alters but cannot point to code in front of
+      you that defines that behavior, the definition lives in a lower
+      layer - descend the delegation chain to its owner and read that
+      contract before any verdict. (Cancellation scope, backpressure, and
+      evaluation order are typical examples; the test, not this list,
+      decides.)
 3. Constraint liveness: is the original condition still true today? Check
    the dependency, platform, caller, or bug it guarded against on the
    current tree, not the historical one.
@@ -50,6 +58,24 @@ constraint still alive.
      what was searched (log, PRs, tickets, tests, including links that
      could not be resolved), and name the cheapest canary that would catch
      a regression: a test to add first, or a metric to watch after.
+
+## Interaction contract (what a verdict does to the edit in flight)
+
+This skill usually fires while an edit is already underway. The verdict
+gates what happens next:
+
+- Fast-path REMOVE: make the edit; state the recovered reason and its
+  expiry in one line so the review trail carries it.
+- KEEP: do not make the edit this turn, and do not hand over an
+  apply-ready diff. Present the constraint with its citations and the
+  concrete failure the edit would reintroduce, then stop. Proceed only on
+  an explicit go given AFTER the verdict; instructions issued before it
+  do not count, since they were given without this information.
+- REMOVE WITH EYES OPEN: present what was searched and the canary. If the
+  canary is cheap (a test to add), add it and proceed. If it is expensive
+  (a load or soak run), stop and put the choice to the user.
+
+The verdict leads the response; it is never buried under a diff.
 
 ## Fast path
 
