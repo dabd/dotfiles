@@ -21,10 +21,14 @@ constraint still alive.
 2. Archaeology, cheapest first; stop at the first source that states the
    reason:
    a. `git log -L<start>,<end>:<file>` - follows the lines through renames
-      and rewrites.
+      and rewrites. If the commit it lands on does not mention the target
+      (a refactor that merely moved the line), fall through to
+      `git log -S '<identifier>'` before concluding anything.
    b. The introducing commit: full message plus the rest of its diff (the
       sibling changes often explain the guard).
    c. Linked artifacts: PR (`gh pr view <n>`), ticket ids in the message.
+      An unresolvable link (migrated repo, dead tracker) is not a dead end:
+      record it as searched-and-unresolvable and let the verdict say so.
    d. Tests that would fail if the code were removed: name them; do not run
       them yet.
 3. Constraint liveness: is the original condition still true today? Check
@@ -32,17 +36,21 @@ constraint still alive.
    current tree, not the historical one.
 4. Verdict, exactly one of:
    - KEEP: constraint alive; cite it.
-   - REMOVE: constraint expired; cite what expired and when.
+   - REMOVE: the reason is recovered and it no longer holds. Two shapes:
+     the constraint expired (cite what expired and when), or it never
+     existed - accidental duplication, dead on arrival (cite the
+     introducing commit showing no reason was recorded).
    - REMOVE WITH EYES OPEN: no reason recoverable. Say so plainly, list
-     what was searched (log, PRs, tickets, tests), and name the cheapest
-     canary that would catch a regression: a test to add first, or a metric
-     to watch after.
+     what was searched (log, PRs, tickets, tests, including links that
+     could not be resolved), and name the cheapest canary that would catch
+     a regression: a test to add first, or a metric to watch after.
 
 ## Fast path
 
 Reason recovered in one blame and clearly dead or clearly alive: answer in
 three lines or fewer and proceed with the edit. The full report is for
-genuinely murky fences.
+genuinely murky fences, contested verdicts, and callers who asked for the
+trail.
 
 ## Evidence rule
 
@@ -52,8 +60,10 @@ WITH EYES OPEN, not a confident guess.
 
 ## Anti-patterns
 
-- Blocking trivial edits: renames, comment fixes, and dead imports need no
-  fence check.
+- Blocking trivial edits: renames, comment fixes, and imports whose removal
+  cannot change what compiles need no fence check. Anything else with zero
+  references still gets the fast path, not a skip: dead-looking code with a
+  live reason is the whole point of this skill.
 - History tourism: stop at the first commit that states the reason; the
   full lineage is not the deliverable.
 - Verdict inflation: KEEP requires a live, named constraint. Reverence for
