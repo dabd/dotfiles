@@ -75,6 +75,17 @@ found it.
   it `speculative` and say why you suspect it.
 - Every `verified` row cites a concrete artifact: a `file:line`, a grep hit, a
   commit. No citation means the row is speculative. There is no third state.
+- `verified` covers the CONSEQUENCE, not just the artifact. Finding the site
+  proves it exists; the row's claim is what happens to it. Before marking
+  verified, check the three ways an existing site fails to matter:
+  - reachability: is the site actually on the path the change affects, or
+    wired into a branch the affected traffic never takes?
+  - liveness: does anything reference it? A zero-reference site has no blast
+    radius; report it as dead code, not impact.
+  - co-variance, for cardinality and rebaseline claims: two keys carrying
+    the same value multiply nothing, and removing one moves no numbers.
+  A row whose artifact is verified but whose consequence is not stays
+  speculative, with the missing check named.
 - Null output is a valid result. A genuinely self-contained change gets an
   empty table plus the list of categories searched.
 - Search before you assert. If a search is impossible here (no access to the
