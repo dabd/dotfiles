@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# rig-update-check: weekly report of stale rig flake pins.
+#
+# Exists because the nixpkgs pin sat ten weeks behind on 2026-08-03 while
+# upstream tmux shipped grid-corruption fixes; the pinned 3.6a server hit
+# the copy-mode crash (SIGABRT in grid_clear_lines, tmux/tmux#5302) and
+# took three agent sessions with it. Report-only: prints what is stale and
+# the exact remedy; never touches flake.lock or the profile.
+#
+# Checks:
+#   - age of the locked nixpkgs input (warn past MAX_PIN_AGE_DAYS)
+#   - installed tmux version vs current nixos-unstable (needs network;
+#     skipped with a note when the eval fails)
+#
+# Output lands in ~/Library/Logs/rig-update-check.log via launchd.
+
+set -u
+PATH="/usr/bin:/bin:/usr/sbin:/sbin:$HOME/.nix-profile/bin:/nix/var/nix/profiles/default/bin"
+
+RIG="${RIG_UPDATE_CHECK_DIR:-$HOME/rig}"
+MAX_PIN_AGE_DAYS=30
+REMEDY="cd ~/rig && nix flake update && home-manager switch --flake ~/rig#default --impure"
+
+echo "== rig-update-check $(date '+%Y-%m-%d %H:%M') =="
+
+stale=0
+
+pin_age_days=$(python3 -c '
+import json, sys, time
+lock = json.load(open(sys.argv[1]))
+ts = lock["nodes"]["nixpkgs"]["locked"]["lastModified"]
+print(int((time.time() - ts) // 86400))
+' "$RIG/flake.lock") || { echo "ERROR: cannot read $RIG/flake.lock"; exit 1; }
+
+if [ "$pin_age_days" -gt "$MAX_PIN_AGE_DAYS" ]; then
+  echo "STALE: nixpkgs pin is ${pin_age_days} days old (threshold ${MAX_PIN_AGE_DAYS})"
+  stale=1
+else
+  echo "ok: nixpkgs pin is ${pin_age_days} days old"
+fi
+
+installed=$(tmux -V 2>/dev/null | awk '{print $2}')
+latest=$(nix eval --raw 'github:nixos/nixpkgs/nixos-unstable#tmux.version' 2>/dev/null)
+if [ -z "$latest" ]; then
+  echo "skip: could not evaluate upstream tmux version (offline?)"
+elif [ "$installed" != "$latest" ]; then
+  echo "STALE: tmux ${installed:-none} installed, ${latest} in nixos-unstable"
+  stale=1
+else
+  echo "ok: tmux ${installed} matches nixos-unstable"
+fi
+
+[ "$stale" -eq 1 ] && echo "remedy: $REMEDY"
+exit 0

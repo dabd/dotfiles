@@ -10,7 +10,9 @@
   home.packages = with pkgs; [
     ripgrep
     fd
-    emacs-macport
+    # withMailutils=false: nothing in emacs/ uses rmail/movemail, and mailutils
+    # 3.21 fails to link on aarch64-darwin in current unstable (libmu_sieve).
+    (emacs-macport.override { withMailutils = false; })
     metals          # Scala LSP server (Metals)
     curl            # >= 8.9, required by gptel's Bedrock SigV4 signing (macOS ships 8.7)
     pandoc          # GFM -> HTML for markdown-mode preview (see lisp/markup.el)
@@ -19,7 +21,9 @@
     # projects.el adds that to treesit-extra-load-path. Reproducible: no
     # per-machine runtime grammar installs / prompts (replaces that backlog item).
     emacs.pkgs.treesit-grammars.with-all-grammars
-    tmux            # was the Homebrew binary; Nix-pinned (3.6a). Retire Homebrew tmux in Phase 2.
+    tmux            # was the Homebrew binary; Nix-pinned. Retire Homebrew tmux in Phase 2.
+                    # Keep the pin fresh: 3.6a's grid corruption crashed the server
+                    # 2026-08-03 (tmux/tmux#5302); bin/rig-update-check watches the gap.
     fzf             # required by the tmux MRU pickers; also revives the tmux-fzf plugin (inert until now)
   ];
 
@@ -66,6 +70,19 @@
     };
   };
 
+  # Weekly report-only staleness check on the flake pins (bin/rig-update-check).
+  # Born 2026-08-03: the nixpkgs pin sat ten weeks behind while upstream fixed
+  # the tmux grid-corruption crash that killed the server and three sessions.
+  launchd.agents.rig-update-check = {
+    enable = true;
+    config = {
+      ProgramArguments = [ "${homeDirectory}/bin/rig-update-check" ];
+      StartCalendarInterval = [ { Weekday = 1; Hour = 9; Minute = 15; } ];
+      StandardOutPath = "${homeDirectory}/Library/Logs/rig-update-check.log";
+      StandardErrorPath = "${homeDirectory}/Library/Logs/rig-update-check.log";
+    };
+  };
+
   # Agent CLIs rewrite these at runtime (model saves, hook edits), so they must
   # stay writable: out-of-store symlinks into the repo working copy. Requires
   # the repo at ~/rig and --impure (both already required).
@@ -84,5 +101,6 @@
     ".codex-personal/skills".source = repoFile "codex/skills";
     ".gitconfig-personal".source = ./git/gitconfig-personal;
     "bin/agents-gc" = { source = ./bin/agents-gc; executable = true; };
+    "bin/rig-update-check" = { source = ./bin/rig-update-check; executable = true; };
   };
 }
