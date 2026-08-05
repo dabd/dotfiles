@@ -1,6 +1,6 @@
 #!/bin/bash
 # Claude Code status line. Reads the session JSON on stdin and prints one
-# colored line: dir . git:(branch) . Model . N% ctx . profile/provider . $cost
+# colored line: dir . git:(branch) . Model . effort . N% ctx . provider . $cost
 # Mirrors the robbyrussell PS1 (cyan dir, blue/red git) then adds session info.
 input=$(cat)
 
@@ -10,6 +10,9 @@ cwd=$(j '.workspace.current_dir'); [ -z "$cwd" ] && cwd=$(j '.cwd')
 [ -z "$cwd" ] && cwd=$(pwd)
 dir=$(basename "$cwd")
 model=$(j '.model.display_name')
+# Only present when the model supports reasoning effort, so an empty value is
+# a fact about the model rather than a missing field.
+effort=$(j '.effort.level')
 ctx=$(j '.context_window.used_percentage')
 cost=$(j '.cost.total_cost_usd')
 
@@ -47,8 +50,10 @@ add "${CYAN}${dir}${RESET}"
 branch=$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null)
 [ -n "$branch" ] && add "\033[1;34mgit:(\033[31m${branch}\033[34m)${RESET}"
 
-# model
+# model, then reasoning effort as its own segment in the same white, since it is
+# an attribute of the model rather than a separate axis like the provider
 [ -n "$model" ] && add "${MODEL}${model}${RESET}"
+[ -n "$effort" ] && add "${MODEL}${effort}${RESET}"
 
 # context-window usage: green < 50, yellow < 80, red >= 80
 if [ -n "$ctx" ]; then
