@@ -21,9 +21,16 @@
     # projects.el adds that to treesit-extra-load-path. Reproducible: no
     # per-machine runtime grammar installs / prompts (replaces that backlog item).
     emacs.pkgs.treesit-grammars.with-all-grammars
-    tmux            # was the Homebrew binary; Nix-pinned. Retire Homebrew tmux in Phase 2.
-                    # Keep the pin fresh: 3.6a's grid corruption crashed the server
-                    # 2026-08-03 (tmux/tmux#5302); bin/rig-update-check watches the gap.
+    # was the Homebrew binary; Nix-pinned. Retire Homebrew tmux in Phase 2.
+    # Keep the pin fresh: bin/rig-update-check watches the gap.
+    # jemalloc: the copy-mode grid corruption (tmux/tmux#5302, #5385) crashed
+    # the server on 2026-08-03 (3.6a) AND 2026-08-05 (3.7b); upstream's fix for
+    # 3.8 is to sidestep a macOS system-calloc bug by building with jemalloc.
+    # 3.7b already has the configure flag, so apply the same workaround here.
+    ((tmux.overrideAttrs (old: {
+      buildInputs = old.buildInputs ++ [ jemalloc ];
+      configureFlags = old.configureFlags ++ [ "--enable-jemalloc" ];
+    })))
     fzf             # required by the tmux MRU pickers; also revives the tmux-fzf plugin (inert until now)
   ];
 
